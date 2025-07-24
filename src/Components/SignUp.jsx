@@ -1,55 +1,25 @@
-import React, { useContext, useState } from "react";
+import React, { useState, useContext } from "react";
 import { FaEyeSlash, FaRegEye } from "react-icons/fa";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../Context/AuthProvider";
 import toast from "react-hot-toast";
-import { motion } from "framer-motion";
-import { imageUpload, saveUserInDb } from "../API/utilis";
-
+import { saveUserInDb, imageUpload } from "../API/utilis";
 
 const Signup = () => {
   const { CreateUser, setUser, updateUser, googleSignIn } = useContext(AuthContext);
   const [errorMessage, setErrorMessage] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [loading, setLoading] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const from = location.state?.from || "/";
 
-  const handleGoogleLogIn = () => {
-    googleSignIn()
-      .then((result) => {
-        const user = result.user;
-        const userData = {
-          name: user.displayName,
-          email: user.email,
-          image: user.photoURL,
-        };
-        saveUserInDb(userData);
-        updateUser({ displayName: user.displayName, photoURL: user.photoURL })
-          .then(() => {
-            setUser({ ...user, displayName: user.displayName, photoURL: user.photoURL });
-            navigate(from, { replace: true });
-          })
-          .catch((error) => {
-            setUser(user);
-            console.log(error);
-          });
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
-
   const handleSignup = async (e) => {
     e.preventDefault();
-    setSuccess(false);
-    setErrorMessage("");
     setLoading(true);
-
+    setErrorMessage("");
     const name = e.target.name.value;
     const email = e.target.email.value;
     const password = e.target.password.value;
@@ -64,38 +34,60 @@ const Signup = () => {
     if (imageFile) {
       try {
         imageUrl = await imageUpload(imageFile);
-      } catch {
+      } catch (uploadError) {
         toast.error("Image upload failed! Default image will be used.");
       }
     }
 
-    CreateUser(email, password)
-      .then((result) => {
-        const user = result.user;
-        const userData = {
-          name: name || "Anonymous",
-          email,
-          image: imageUrl,
-        };
-        saveUserInDb(userData);
-        toast.success("Registration Successful");
-        updateUser({ displayName: name, photoURL: imageUrl })
-          .then(() => {
-            setUser({ ...user, displayName: name, photoURL: imageUrl });
-            setSuccess(true);
-            setLoading(false);
-            navigate(from, { replace: true });
-          })
-          .catch((error) => {
-            setUser(user);
-            setLoading(false);
-            console.log(error);
-          });
-      })
-      .catch((error) => {
-        setLoading(false);
-        setErrorMessage(error.message);
-      });
+    try {
+      const result = await CreateUser(email, password);
+      const user = result.user;
+
+      await updateUser({ displayName: name, photoURL: imageUrl });
+
+      const userDataForDb = {
+        name: name || "Anonymous",
+        email: email,
+        image: imageUrl,
+        uid: user.uid,
+      };
+
+      await saveUserInDb(userDataForDb);
+
+      setUser(user);
+      toast.success("Registration Successful!");
+      navigate(from, { replace: true });
+    } catch (firebaseError) {
+      setErrorMessage(firebaseError.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogIn = async () => {
+    setLoading(true);
+    setErrorMessage("");
+    try {
+      const result = await googleSignIn();
+      const user = result.user;
+
+      const userDataForDb = {
+        name: user.displayName || "Anonymous",
+        email: user.email,
+        image: user.photoURL || "https://i.ibb.co/2d9dK0F/default-profile.png",
+        uid: user.uid,
+      };
+
+      await saveUserInDb(userDataForDb);
+
+      setUser(user);
+      toast.success("Google Sign-in Successful!");
+      navigate(from, { replace: true });
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleImageChange = (e) => {
@@ -105,6 +97,8 @@ const Signup = () => {
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result);
       reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
     }
   };
 
@@ -180,26 +174,15 @@ const Signup = () => {
               Already have an account? <Link to="/login" className="text-primary underline">Log in</Link>
             </p>
             {errorMessage && <p className="text-red-500 text-sm text-center">{errorMessage}</p>}
-            {success && <p className="text-green-500 text-sm text-center">Account created successfully</p>}
           </form>
         </div>
         <div className="w-full lg:w-1/2 bg-gradient-to-br from-[#ffe3ec] to-[#e3f2fd] p-10 flex flex-col justify-center items-center text-center">
-          <motion.h3
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-3xl font-bold text-gray-700 mb-4"
-          >
+          <h3 className="text-3xl font-bold text-gray-700 mb-4">
             Join Jonoprio Today
-          </motion.h3>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-gray-600"
-          >
+          </h3>
+          <p className="text-gray-600">
             Explore the marketplace, sell your products, and enjoy exclusive deals on your favorite items.
-          </motion.p>
+          </p>
         </div>
       </div>
     </div>

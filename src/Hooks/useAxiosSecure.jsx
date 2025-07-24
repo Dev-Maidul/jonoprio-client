@@ -1,22 +1,22 @@
-import axios from 'axios'
-import useAuth from './useAuth'
-import { useEffect } from 'react'
-import { useNavigate } from 'react-router'
-import { getAuth } from "firebase/auth";
+// useAxiosSecure.js
+import axios from 'axios';
+import useAuth from './useAuth';
+import { getAuth } from 'firebase/auth';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export const axiosSecure = axios.create({
+const axiosSecure = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
-})
+});
 
 const useAxiosSecure = () => {
-  const navigate = useNavigate()
-  const { logOut } = useAuth()
+  const { logOut } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Request interceptor: attach token
     const requestInterceptor = axiosSecure.interceptors.request.use(
-      async config => {
+      async (config) => {
         const auth = getAuth();
         const user = auth.currentUser;
         if (user) {
@@ -25,14 +25,14 @@ const useAxiosSecure = () => {
         }
         return config;
       },
-      error => Promise.reject(error)
+      (error) => Promise.reject(error)
     );
 
-    // Response interceptor: handle 401/403
     const responseInterceptor = axiosSecure.interceptors.response.use(
-      res => res,
-      async error => {
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      (response) => response,
+      async (error) => {
+        const status = error.response?.status;
+        if (status === 401 || status === 403) {
           await logOut();
           navigate('/login');
         }
@@ -40,7 +40,6 @@ const useAxiosSecure = () => {
       }
     );
 
-    // Cleanup
     return () => {
       axiosSecure.interceptors.request.eject(requestInterceptor);
       axiosSecure.interceptors.response.eject(responseInterceptor);
@@ -48,6 +47,6 @@ const useAxiosSecure = () => {
   }, [logOut, navigate]);
 
   return axiosSecure;
-}
+};
 
 export default useAxiosSecure;
