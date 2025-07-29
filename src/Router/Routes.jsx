@@ -14,6 +14,11 @@ import MyProducts from "../Dashboard/Seller/MyProducts";
 import AddProducts from "../Dashboard/Seller/AddProducts";
 import SellerOrders from "../Dashboard/Seller/SellerOrders";
 import SellerRoute from './SellerRoute';
+import ProductDetails from "../Pages/Products/ProductDetails";
+import EditProduct from "../Dashboard/Seller/EditProduct";
+
+
+
 
 export const router = createBrowserRouter([
   {
@@ -28,6 +33,10 @@ export const router = createBrowserRouter([
       {
         path: "/all-products",
         element: <AllProducts />,
+      },
+      {
+        path: "/product/:id",
+        element: <ProductDetails></ProductDetails>
       },
       {
         path: "/login",
@@ -73,7 +82,7 @@ export const router = createBrowserRouter([
       { path: "my-products", element: <MyProducts /> },
       { path: "add-product", element: <AddProducts /> },
       { path: "seller-orders", element: <SellerOrders /> },
-
+      { path: "edit-product/:id", element: <EditProduct /> },
       // // Customer Routes
       // { path: "customer-home", element: <CustomerHome /> },
       // { path: "my-orders", element: <MyOrders /> },

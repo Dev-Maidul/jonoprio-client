@@ -1,22 +1,21 @@
-// useAxiosSecure.js
 import axios from 'axios';
 import useAuth from './useAuth';
-import { getAuth } from 'firebase/auth';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getAuth } from "firebase/auth";
 
-const axiosSecure = axios.create({
+export const axiosSecure = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
 });
 
 const useAxiosSecure = () => {
-  const { logOut } = useAuth();
   const navigate = useNavigate();
+  const { logOut } = useAuth();
 
   useEffect(() => {
     const requestInterceptor = axiosSecure.interceptors.request.use(
-      async (config) => {
+      async config => {
         const auth = getAuth();
         const user = auth.currentUser;
         if (user) {
@@ -25,12 +24,12 @@ const useAxiosSecure = () => {
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      error => Promise.reject(error)
     );
 
     const responseInterceptor = axiosSecure.interceptors.response.use(
-      (response) => response,
-      async (error) => {
+      res => res,
+      async error => {
         const status = error.response?.status;
         if (status === 401 || status === 403) {
           await logOut();

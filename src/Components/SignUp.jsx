@@ -1,93 +1,150 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { FaEyeSlash, FaRegEye } from "react-icons/fa";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../Context/AuthProvider";
 import toast from "react-hot-toast";
 import { saveUserInDb, imageUpload } from "../API/utilis";
+import { getAuth, getRedirectResult } from "firebase/auth";
 
 const Signup = () => {
-  const { CreateUser, setUser, updateUser, googleSignIn } = useContext(AuthContext);
+  const { CreateUser, setUser, updateUserProfile, googleSignIn } = useContext(AuthContext);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [success, setSuccess] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const from = location.state?.from || "/";
 
+  useEffect(() => {
+    const auth = getAuth();
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result && result.user) {
+          const user = result.user;
+          const userData = {
+            name: user.displayName || "Anonymous",
+            email: user.email,
+            image: user.photoURL || "https://i.ibb.co/2d9dK0F/default-profile.png",
+            uid: user.uid,
+          };
+
+          await saveUserInDb(userData);
+
+          setUser(user);
+          toast.success("Google Sign-in Successful!");
+          setLoading(false);
+          navigate(from, { replace: true });
+        }
+      })
+      .catch((error) => {
+        console.error("Google Redirect Sign-in Error:", error);
+        setErrorMessage(error.message);
+        setLoading(false);
+      });
+  }, [from, navigate, setUser]);
+
+  // Google Sign In
+  const handleGoogleLogIn = () => {
+    googleSignIn()
+      .then((result) => {
+        const user = result.user;
+        const userData = {
+          name: user.displayName,
+          email: user.email,
+          image: user.photoURL,
+        };
+        saveUserInDb(userData);
+        updateUserProfile({ displayName: user.displayName, photoURL: user.photoURL })
+          .then(() => {
+            setUser({ ...user, displayName: user.displayName, photoURL: user.photoURL });
+            navigate(from, { replace: true });
+          })
+          .catch((error) => {
+            setUser(user);
+            console.log(error);
+          });
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
+
+  // Email/Password Signup
   const handleSignup = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setSuccess(false);
     setErrorMessage("");
+    setLoading(true);
+
     const name = e.target.name.value;
     const email = e.target.email.value;
     const password = e.target.password.value;
+    const terms = e.target.elements.terms.checked; // Fixed here
 
-    if (password.length < 6 || !/[a-z]/.test(password) || !/[A-Z]/.test(password)) {
-      setErrorMessage("Password must contain at least 6 characters, one lowercase and one uppercase letter.");
+    // Password validation
+    if (password.length < 6) {
+      setErrorMessage("Password must be at least 6 characters");
+      setLoading(false);
+      return;
+    }
+    if (!terms) {
+      setErrorMessage("Please accept our terms and conditions");
+      setLoading(false);
+      return;
+    }
+    if (!/[a-z]/.test(password)) {
+      setErrorMessage("Password should contain at least one lowercase letter.");
+      setLoading(false);
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setErrorMessage("Password should contain at least one uppercase letter.");
       setLoading(false);
       return;
     }
 
     let imageUrl = "https://i.ibb.co/2d9dK0F/default-profile.png";
+    // If user uploaded an image, upload to image host
     if (imageFile) {
       try {
         imageUrl = await imageUpload(imageFile);
-      } catch (uploadError) {
+      } catch (err) {
         toast.error("Image upload failed! Default image will be used.");
       }
     }
 
-    try {
-      const result = await CreateUser(email, password);
-      const user = result.user;
+    CreateUser(email, password)
+      .then((result) => {
+        const user = result.user;
+        const userData = {
+          name: name || "Anonymous",
+          email,
+          image: imageUrl,
+        };
+        // Save user data in DB
+        saveUserInDb(userData);
 
-      await updateUser({ displayName: name, photoURL: imageUrl });
-
-      const userDataForDb = {
-        name: name || "Anonymous",
-        email: email,
-        image: imageUrl,
-        uid: user.uid,
-      };
-
-      await saveUserInDb(userDataForDb);
-
-      setUser(user);
-      toast.success("Registration Successful!");
-      navigate(from, { replace: true });
-    } catch (firebaseError) {
-      setErrorMessage(firebaseError.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleLogIn = async () => {
-    setLoading(true);
-    setErrorMessage("");
-    try {
-      const result = await googleSignIn();
-      const user = result.user;
-
-      const userDataForDb = {
-        name: user.displayName || "Anonymous",
-        email: user.email,
-        image: user.photoURL || "https://i.ibb.co/2d9dK0F/default-profile.png",
-        uid: user.uid,
-      };
-
-      await saveUserInDb(userDataForDb);
-
-      setUser(user);
-      toast.success("Google Sign-in Successful!");
-      navigate(from, { replace: true });
-    } catch (error) {
-      setErrorMessage(error.message);
-    } finally {
-      setLoading(false);
-    }
+        toast.success("Registration Successful");
+        updateUserProfile({ displayName: name, photoURL: imageUrl })
+          .then(() => {
+            setUser({ ...user, displayName: name, photoURL: imageUrl });
+            setSuccess(true); // Set success state to true when registration is successful
+            setLoading(false);
+            navigate(from, { replace: true });
+          })
+          .catch((error) => {
+            setUser(user);
+            setLoading(false);
+            console.log(error);
+          });
+      })
+      .catch((error) => {
+        setLoading(false);
+        setErrorMessage(error.message);
+      });
   };
 
   const handleImageChange = (e) => {
@@ -152,6 +209,17 @@ const Signup = () => {
                 {showPassword ? <FaRegEye /> : <FaEyeSlash />}
               </button>
             </div>
+
+            <label className="flex items-center mt-2">
+              <input
+                type="checkbox"
+                name="terms"
+                required
+                className="mr-2"
+              />
+              I agree to the terms and conditions
+            </label>
+
             <button
               type="submit"
               className="btn w-full bg-gradient-to-r from-[#ff8a05] via-[#ff5478] to-[#ff00c6] text-white font-bold"

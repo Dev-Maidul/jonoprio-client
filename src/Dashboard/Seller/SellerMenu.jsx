@@ -1,10 +1,9 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { FaHome, FaBoxOpen, FaPlusSquare, FaClipboardCheck } from 'react-icons/fa';
-import { motion } from 'framer-motion'; // Import Framer Motion
+import { motion } from 'framer-motion';
 
 const SellerMenu = () => {
-  // Framer Motion variants for list items
   const itemVariants = {
     hidden: { opacity: 0, x: -20 },
     visible: { opacity: 1, x: 0, transition: { duration: 0.3 } },

@@ -1,13 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { FaHome, FaUsers, FaBox, FaClipboardList, FaChartBar } from 'react-icons/fa';
-import { motion } from 'framer-motion'; // Import Framer Motion
+import { motion } from 'framer-motion';
 
 const AdminMenu = () => {
-    // Framer Motion variants for list items
     const itemVariants = {
         hidden: { opacity: 0, x: -20 },
-        visible: { opacity: 1, x: 0, transition: { duration: 0.3 } }, // Short duration for quick animation
+        visible: { opacity: 1, x: 0, transition: { duration: 0.3 } },
     };
 
     return (
@@ -17,11 +16,11 @@ const AdminMenu = () => {
             variants={{
                 visible: {
                     transition: {
-                        staggerChildren: 0.1, // Stagger items with a small delay (0.1s between each)
+                        staggerChildren: 0.1,
                     },
                 },
             }}
-            className="space-y-2" // Tailwind for spacing
+            className="space-y-2"
         >
             <motion.li variants={itemVariants}>
                 <NavLink

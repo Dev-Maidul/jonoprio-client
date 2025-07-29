@@ -1,19 +1,18 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../Context/AuthProvider';
-import useAxiosSecure from '../hooks/useAxiosSecure';
-import { FaBars, FaTimes } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import axios from 'axios';
+import { FaBars, FaTimes } from 'react-icons/fa';
 import AdminMenu from './Admin/AdminMenu';
-import SellerMenu from './Seller/SellerMenu';
 import CustomerMenu from './CustomerMenu';
+import SellerMenu from './Seller/SellerMenu';
 
 const DashboardLayout = () => {
   const { user, loading, logOut } = useContext(AuthContext);
   const [userRole, setUserRole] = useState(null);
   const [isRoleLoading, setIsRoleLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const axiosSecure = useAxiosSecure();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,10 +20,10 @@ const DashboardLayout = () => {
       if (user && user.email) {
         try {
           setIsRoleLoading(true);
-          const { data } = await axiosSecure.get(`/user/role/${user.email}`);
-          setUserRole(data.role);
+          // Update the URL to point to the correct API
+          const response = await axios.get(`http://localhost:3000/user/role/${user.email}`);
+          setUserRole(response.data.role);
         } catch (error) {
-          console.error("Error fetching user role:", error);
           toast.error("Failed to load user role. Please try again.");
           setUserRole(null);
           if (error.response && (error.response.status === 401 || error.response.status === 403)) {
@@ -42,7 +41,7 @@ const DashboardLayout = () => {
     };
 
     fetchUserRole();
-  }, [user, loading, axiosSecure, logOut, navigate]);
+  }, [user, loading, logOut, navigate]);
 
   if (loading || isRoleLoading) {
     return (
@@ -64,7 +63,7 @@ const DashboardLayout = () => {
     if (userRole === 'admin') {
       return <AdminMenu />;
     } else if (userRole === 'seller') {
-      return <SellerMenu />;
+      return <SellerMenu/>;
     } else if (userRole === 'customer') {
       return <CustomerMenu />;
     }
@@ -115,7 +114,7 @@ const DashboardLayout = () => {
         </ul>
       </div>
 
-      <div className={`flex-1 p-6 lg:ml-64 ${sidebarOpen ? 'ml-64' : 'ml-0'} transition-all duration-300 ease-in-out`}>
+      <div className={`flex-1 py-8 px-8 lg:ml-0 ${sidebarOpen ? 'ml-64' : 'ml-0'} transition-all duration-300 ease-in-out`}>
         <div className="mt-16 lg:mt-0">
           <Outlet />
         </div>

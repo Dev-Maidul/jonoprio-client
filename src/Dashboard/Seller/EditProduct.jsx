@@ -1,12 +1,16 @@
-import React, { useState, useContext, useCallback } from 'react';
+import React, { useState, useContext, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { AuthContext } from '../../Context/AuthProvider';
 import useAxiosSecure from '../../hooks/useAxiosSecure';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { imageUpload } from '../../API/utilis';
 import toast from 'react-hot-toast';
-import { motion } from 'framer-motion';
-import { FaPlus, FaMinus } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaPlus, FaMinus, FaTimesCircle } from 'react-icons/fa';
+import Swal from 'sweetalert2';
 
+// Define constants outside the component for better readability and to prevent re-creation
 const CATEGORIES_DATA = [
     { group: "Sound Equipment", items: ["Earphone", "Neckband", "Earbuds", "Overhead Headphone", "Wireless Headphone", "Wired Headphone", "Bluetooth speaker", "Smart speaker"] },
     { group: "Watch & Fitness", items: ["Smart Watch", "Classic Watch", "Couple Watch", "Watch Strap"] },
@@ -18,39 +22,97 @@ const CATEGORIES_DATA = [
 
 const MAX_IMAGE_SIZE_MB = 1;
 
-const AddProduct = () => {
-    const { user } = useContext(AuthContext);
+const EditProduct = () => {
+    const { id } = useParams();
+    const { user, loading: userLoading } = useContext(AuthContext);
     const axiosSecure = useAxiosSecure();
-    const {
-        register,
-        handleSubmit,
-        control,
-        formState: { errors },
-        reset,
-        watch,
-        setValue
-    } = useForm({
-        defaultValues: {
-            variants: [{ color: '', variantPrice: '', variantSpecialPrice: '', variantStock: '', sellerSku: '' }],
-            isDangerous: 'no',
-            status: 'pending',
+    const queryClient = useQueryClient();
+    const navigate = useNavigate();
+
+    // Helper functions for parsing MongoDB Extended JSON numbers, memoized
+    const parseNumber = useCallback((value) => {
+        if (typeof value === 'object' && value !== null && (value?.$numberInt !== undefined || value?.$numberDouble !== undefined)) {
+            return parseFloat(value.$numberInt || value.$numberDouble);
         }
+        return value !== null && value !== undefined ? parseFloat(value) : undefined;
+    }, []);
+
+    const parseIntValue = useCallback((value) => {
+        if (typeof value === 'object' && value !== null && (value?.$numberInt !== undefined || value?.$numberDouble !== undefined)) {
+            return parseInt(value.$numberInt || value.$numberDouble);
+        }
+        return value !== null && value !== undefined ? parseInt(value) : undefined;
+    }, []);
+
+    // 1. Fetch existing product data using React Query
+    const { data: product, isLoading: isProductLoading, isError: isProductError, error: productError } = useQuery({
+        queryKey: ['productDetails', id],
+        queryFn: async () => {
+            const { data } = await axiosSecure.get(`/product/${id}`);
+            return data;
+        },
+        enabled: !!id, // Only run query if ID is available
     });
 
+    // React Hook Form setup
+    const { register, handleSubmit, control, formState: { errors }, reset, watch, setValue } = useForm();
     const { fields, append, remove } = useFieldArray({
         control,
         name: "variants",
     });
 
     const [loading, setLoading] = useState(false);
-    const [imagePreviews, setImagePreviews] = useState([]);
+    const [existingImages, setExistingImages] = useState([]); // To manage existing images {url, public_id}
+    const [newImageFiles, setNewImageFiles] = useState([]); // To manage newly selected files
+    const [newImagePreviews, setNewImagePreviews] = useState([]); // Previews for newly selected files
 
+    // Set initial form values when product data is fetched
+    useEffect(() => {
+        if (product && user && product.sellerEmail === user.email) {
+            // Determine if category is custom
+            const isCustomCategory = !CATEGORIES_DATA.some(group => group.items.includes(product.category));
+
+            reset({
+                productName: product.productName,
+                category: isCustomCategory ? 'Other / Custom' : product.category,
+                customCategory: isCustomCategory ? product.category : '',
+                brand: product.brand,
+                videoUrl: product.videoUrl,
+                model: product.specifications?.model,
+                material: product.specifications?.material,
+                price: parseNumber(product.price),
+                specialPrice: parseNumber(product.specialPrice),
+                stock: parseIntValue(product.stock),
+                description: product.description,
+                weight: parseNumber(product.shippingInfo?.weight),
+                length: parseNumber(product.shippingInfo?.length),
+                width: parseNumber(product.shippingInfo?.width),
+                height: parseNumber(product.shippingInfo?.height),
+                isDangerous: product.shippingInfo?.isDangerous ? 'yes' : 'no',
+                warrantyType: product.warrantyInfo?.type,
+                warrantyPeriod: product.warrantyInfo?.period,
+                status: product.status,
+                variants: product.variants?.map(v => ({
+                    color: v.color,
+                    variantPrice: parseNumber(v.variantPrice),
+                    variantSpecialPrice: parseNumber(v.variantSpecialPrice),
+                    variantStock: parseIntValue(v.variantStock),
+                    sellerSku: v.sellerSku,
+                })) || [{ color: '', variantPrice: '', variantSpecialPrice: '', variantStock: '', sellerSku: '' }],
+            });
+            setExistingImages(product.images || []);
+        }
+    }, [product, reset, user, parseNumber, parseIntValue]);
+
+    // Watch selected category to conditionally show custom category input
     const selectedCategory = watch("category");
 
-    const handleImageChange = useCallback((e) => {
+    // Handle new image file selection, memoized
+    const handleNewImageFilesChange = useCallback((e) => {
         const files = Array.from(e.target.files);
-        setImagePreviews([]); 
-        
+        setNewImageFiles(files);
+        setNewImagePreviews([]);
+
         if (files.length === 0) {
             return;
         }
@@ -58,154 +120,251 @@ const AddProduct = () => {
         const validFiles = files.filter(file => {
             const isValid = file.size <= MAX_IMAGE_SIZE_MB * 1024 * 1024;
             if (!isValid) {
-                toast.error(`File "${file.name}" is larger than ${MAX_IMAGE_SIZE_MB}MB and will be skipped.`);
+                toast.error(`New file "${file.name}" is larger than ${MAX_IMAGE_SIZE_MB}MB and will be skipped.`);
             }
             return isValid;
         });
 
         if (validFiles.length === 0 && files.length > 0) {
-            toast.error(`No valid image files selected. Please select files under ${MAX_IMAGE_SIZE_MB}MB.`);
+            toast.error(`No valid new image files selected for preview. Please select files under ${MAX_IMAGE_SIZE_MB}MB.`);
             return;
         }
 
-        const newPreviews = [];
+        const currentPreviews = [];
         validFiles.forEach((file) => {
             const reader = new FileReader();
             reader.onloadend = () => {
-                newPreviews.push(reader.result);
-                if (newPreviews.length === validFiles.length) {
-                    setImagePreviews(newPreviews);
+                currentPreviews.push(reader.result);
+                if (currentPreviews.length === validFiles.length) {
+                    setNewImagePreviews(currentPreviews);
                 }
             };
             reader.readAsDataURL(file);
         });
     }, []);
 
-    const validateImageFiles = useCallback((files) => {
-        if (!files || files.length === 0) {
-            return 'At least one image is required.';
+    // Remove existing image from the list (client-side only for form submission), memoized
+    const handleRemoveExistingImage = useCallback((imageToRemove) => {
+        setExistingImages(prev => prev.filter(image => image.public_id !== imageToRemove.public_id));
+        toast.success('Image removed from current selection. Save to apply changes.');
+    }, []);
+
+    // Form validation for images (overall for existing + new files), memoized
+    const validateCombinedImages = useCallback(() => {
+        if (existingImages.length === 0 && newImageFiles.length === 0) {
+            return 'At least one product image is required.';
         }
-        for (const file of files) {
+        for (const file of newImageFiles) {
             if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-                return `File "${file.name}" is larger than ${MAX_IMAGE_SIZE_MB}MB. Max size is ${MAX_IMAGE_SIZE_MB}MB per image.`;
+                return `New file "${file.name}" is larger than ${MAX_IMAGE_SIZE_MB}MB. Max size is ${MAX_IMAGE_SIZE_MB}MB per image.`;
             }
         }
         return true;
-    }, []);
+    }, [existingImages, newImageFiles]);
+
+    // Mutation for updating product
+    const updateProductMutation = useMutation({
+        mutationFn: async (updatedProductData) => {
+            const { data } = await axiosSecure.put(`/seller/product/${id}`, updatedProductData);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['productDetails', id] }); // Re-fetch single product
+            queryClient.invalidateQueries({ queryKey: ['myProducts', user?.email] }); // Re-fetch seller's product list
+            toast.success('Product updated successfully!');
+            navigate('/dashboard/my-products'); // Navigate back to product list
+        },
+        onError: (error) => {
+            console.error("Error updating product:", error);
+            toast.error(error.response?.data?.message || 'Failed to update product.');
+        },
+    });
+
+    // Mutation for deleting product
+    const deleteProductMutation = useMutation({
+        mutationFn: async () => {
+            const { data } = await axiosSecure.delete(`/seller/product/${id}`);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['myProducts', user?.email] });
+            toast.success('Product deleted successfully, including its images!');
+            navigate('/dashboard/my-products'); // Navigate back to product list
+        },
+        onError: (error) => {
+            console.error("Error deleting product:", error);
+            toast.error(error.response?.data?.message || 'Failed to delete product.');
+        },
+    });
+
+    // Handle product deletion (with SweetAlert confirmation)
+    const handleDeleteProduct = useCallback(() => {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "You won't be able to revert this! This product and all associated images will be permanently deleted.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, delete it!"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                deleteProductMutation.mutate();
+            } else {
+                Swal.fire("Cancelled", "Your product is safe!", "error");
+            }
+        });
+    }, [deleteProductMutation]);
+
 
     const onSubmit = async (data) => {
-        setLoading(true);
-        try {
-            const finalCategory = data.category === 'Other / Custom' ? data.customCategory : data.category;
-            if (!finalCategory) {
-                toast.error('Please select or enter a category.');
-                setLoading(false);
-                return;
-            }
+        Swal.fire({
+            title: "Confirm Update?",
+            text: "Are you sure you want to save all changes to this product?",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, update it!"
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                setLoading(true);
+                try {
+                    const finalCategory = data.category === 'Other / Custom' ? data.customCategory : data.category;
+                    if (!finalCategory) {
+                        toast.error('Please select or enter a category.');
+                        setLoading(false);
+                        return;
+                    }
 
-            const uploadedImages = [];
-            if (data.productImages && data.productImages.length > 0) {
-                for (const imageFile of Array.from(data.productImages)) {
-                    if (imageFile.size <= MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-                        try {
-                            const imageData = await imageUpload(imageFile);
-                            uploadedImages.push(imageData);
-                        } catch (uploadError) {
-                            console.error(`Image upload failed for ${imageFile.name}:`, uploadError);
-                            toast.error(`Image upload failed for ${imageFile.name}. Skipping.`);
+                    const newlyUploadedImageData = [];
+                    if (newImageFiles.length > 0) {
+                        for (const imageFile of newImageFiles) {
+                            if (imageFile.size <= MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+                                try {
+                                    const imageData = await imageUpload(imageFile);
+                                    newlyUploadedImageData.push(imageData);
+                                } catch (uploadError) {
+                                    toast.error(`Image upload failed for ${imageFile.name}. Skipping.`);
+                                }
+                            }
                         }
                     }
+
+                    const finalImageUrls = [...existingImages, ...newlyUploadedImageData];
+
+                    if (finalImageUrls.length === 0) {
+                        toast.error("At least one product image is required after editing.");
+                        setLoading(false);
+                        return;
+                    }
+
+                    const updatedProductData = {
+                        productName: data.productName,
+                        category: finalCategory,
+                        price: parseFloat(data.price),
+                        specialPrice: data.specialPrice ? parseFloat(data.specialPrice) : undefined, // Use undefined for null if optional
+                        stock: parseInt(data.stock),
+                        description: data.description,
+                        brand: data.brand || 'Generic',
+                        images: finalImageUrls, // Combined existing (retained) and new images
+                        videoUrl: data.videoUrl || undefined,
+                        status: data.status,
+
+                        sellerEmail: user?.email,
+                        sellerUid: user?.uid,
+                        sellerName: user?.displayName || "Unknown Seller",
+
+                        specifications: {
+                            model: data.model || undefined,
+                            material: data.material || undefined,
+                        },
+                        variants: data.variants
+                            .filter(v => v.color) // Only include variants with a color
+                            .map(v => ({
+                                color: v.color,
+                                variantPrice: v.variantPrice ? parseFloat(v.variantPrice) : undefined,
+                                variantSpecialPrice: v.variantSpecialPrice ? parseFloat(v.variantSpecialPrice) : undefined,
+                                variantStock: v.variantStock ? parseInt(v.variantStock) : undefined,
+                                sellerSku: v.sellerSku || undefined,
+                            })),
+
+                        shippingInfo: {
+                            weight: data.weight ? parseFloat(data.weight) : undefined,
+                            length: data.length ? parseFloat(data.length) : undefined,
+                            width: data.width ? parseFloat(data.width) : undefined,
+                            height: data.height ? parseFloat(data.height) : undefined,
+                            isDangerous: data.isDangerous === 'yes',
+                        },
+                        warrantyInfo: {
+                            type: data.warrantyType || undefined,
+                            period: data.warrantyPeriod || undefined,
+                        },
+                    };
+
+                    updateProductMutation.mutate(updatedProductData);
+
+                } catch (error) {
+                    console.error("Error submitting product update:", error);
+                    const errorMessage = error.response?.data?.message || 'An unexpected error occurred during submission.';
+                    toast.error(errorMessage);
+                } finally {
+                    setLoading(false);
                 }
-            }
-
-            if (uploadedImages.length === 0 && (!data.productImages || data.productImages.length === 0)) {
-                toast.error("Please upload at least one image.");
-                setLoading(false);
-                return;
-            } else if (uploadedImages.length === 0 && data.productImages.length > 0) {
-                 toast.error(`No images could be uploaded successfully. Ensure they are under ${MAX_IMAGE_SIZE_MB}MB.`);
-                 setLoading(false);
-                 return;
-            }
-
-
-            const productData = {
-                productName: data.productName,
-                category: finalCategory,
-                price: parseFloat(data.price),
-                specialPrice: data.specialPrice ? parseFloat(data.specialPrice) : undefined,
-                stock: parseInt(data.stock),
-                description: data.description,
-                brand: data.brand || 'Generic',
-                images: uploadedImages,
-                videoUrl: data.videoUrl || undefined,
-                status: 'pending',
-
-                sellerEmail: user?.email,
-                sellerUid: user?.uid,
-                sellerName: user?.displayName || "Unknown Seller",
-                createdAt: new Date().toISOString(),
-
-                specifications: {
-                    model: data.model || undefined,
-                    material: data.material || undefined,
-                },
-                variants: data.variants
-                    .filter(v => v.color)
-                    .map(v => ({
-                        color: v.color,
-                        variantPrice: v.variantPrice ? parseFloat(v.variantPrice) : undefined,
-                        variantSpecialPrice: v.variantSpecialPrice ? parseFloat(v.variantSpecialPrice) : undefined,
-                        variantStock: v.variantStock ? parseInt(v.variantStock) : undefined,
-                        sellerSku: v.sellerSku || undefined,
-                    })),
-
-                shippingInfo: {
-                    weight: data.weight ? parseFloat(data.weight) : undefined,
-                    length: data.length ? parseFloat(data.length) : undefined,
-                    width: data.width ? parseFloat(data.width) : undefined,
-                    height: data.height ? parseFloat(data.height) : undefined,
-                    isDangerous: data.isDangerous === 'yes',
-                },
-                warrantyInfo: {
-                    type: data.warrantyType || undefined,
-                    period: data.warrantyPeriod || undefined,
-                },
-                initiallyOrdered: 0,
-                avgRating: 0,
-                reviewCount: 0,
-                isFeatured: false,
-                isNewArrival: true,
-            };
-
-            const response = await axiosSecure.post('/seller/product', productData);
-
-            if (response.data.insertedId) {
-                toast.success('Product added successfully and is awaiting admin approval!');
-                reset();
-                setImagePreviews([]);
-                setValue('variants', [{ color: '', variantPrice: '', variantSpecialPrice: '', variantStock: '', sellerSku: '' }]);
             } else {
-                toast.error('Failed to add product.');
+                Swal.fire("Cancelled", "Your product update was cancelled.", "error");
             }
-
-        } catch (error) {
-            console.error("Error adding product:", error);
-            const errorMessage = error.response?.data?.message || 'An unexpected error occurred.';
-            toast.error(errorMessage);
-        } finally {
-            setLoading(false);
-        }
+        });
     };
+
+    // Render loading/error states for product data fetch
+    if (userLoading || isProductLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <span className="loading loading-spinner loading-lg"></span>
+            </div>
+        );
+    }
+    if (isProductError) {
+        return (
+            <div className="min-h-screen flex items-center justify-center text-red-500">
+                Error fetching product: {productError.message}
+            </div>
+        );
+    }
+    if (!product) {
+        return (
+            <div className="min-h-screen flex items-center justify-center text-gray-600">
+                Product not found.
+            </div>
+        );
+    }
+
+    // Client-side ownership check (crucial if server-side verification is minimal)
+    if (user && product.sellerEmail !== user.email) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center text-red-500 text-center p-4">
+                <h2 className="text-3xl font-bold mb-4">Access Denied!</h2>
+                <p className="text-lg">You do not have permission to edit this product as you are not the seller.</p>
+                <button onClick={() => navigate('/dashboard/my-products')} className="mt-6 btn btn-primary">
+                    Go to My Products
+                </button>
+            </div>
+        );
+    }
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="p-6 bg-white rounded-lg shadow-md max-w-4xl mx-auto"
+            className="p-8 bg-white rounded-lg shadow-md max-w-4xl mx-auto"
         >
-            <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Add New Product</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Edit Product</h1>
+            <p className="text-gray-600 text-center mb-8">
+                Editing product: <span className="font-semibold text-blue-600">{product.productName} (ID: {id})</span>
+            </p>
+
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 {/* Basic Information */}
                 <h2 className="text-2xl font-semibold text-gray-800 border-b pb-2 mb-4">Basic Information</h2>
@@ -270,23 +429,53 @@ const AddProduct = () => {
 
                 {/* Product Images & Video */}
                 <h2 className="text-2xl font-semibold text-gray-800 border-b pb-2 mb-4">Images & Video</h2>
+                {/* Existing Images Display */}
+                {existingImages.length > 0 && (
+                    <div className="mb-4">
+                        <label className="block text-gray-700 font-semibold mb-2">Current Images (Click ✖ to remove):</label>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                            <AnimatePresence>
+                                {existingImages.map((image, index) => (
+                                    <motion.div
+                                        key={image.public_id || image.url || `existing-${index}`} // Use public_id as key
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="relative w-full aspect-square object-cover rounded-lg shadow-sm group"
+                                    >
+                                        <img src={image.url} alt={`Existing ${index}`} className="w-full h-full object-cover rounded-lg" />
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveExistingImage(image)}
+                                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-5 h-5"
+                                            title="Remove image from product"
+                                        >
+                                            <FaTimesCircle />
+                                        </button>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </div>
+                    </div>
+                )}
                 <div>
-                    <label htmlFor="productImages" className="block text-gray-700 font-semibold mb-2">Main Product Images (Max {MAX_IMAGE_SIZE_MB}MB each)</label>
+                    <label htmlFor="newProductImages" className="block text-gray-700 font-semibold mb-2">Add New Product Images (Max {MAX_IMAGE_SIZE_MB}MB each)</label>
                     <input
                         type="file"
-                        id="productImages"
+                        id="newProductImages"
                         multiple
                         accept="image/*"
-                        {...register('productImages', { validate: validateImageFiles })}
-                        onChange={handleImageChange}
+                        {...register('newProductImages', { validate: validateCombinedImages })}
+                        onChange={handleNewImageFilesChange}
                         className="file-input file-input-bordered w-full"
                     />
-                    {errors.productImages && <p className="text-red-500 text-sm mt-1">{errors.productImages.message}</p>}
+                    {errors.newProductImages && <p className="text-red-500 text-sm mt-1">{errors.newProductImages.message}</p>}
 
-                    {imagePreviews.length > 0 && (
+                    {newImagePreviews.length > 0 && (
                         <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                            {imagePreviews.map((src, index) => (
-                                <img key={index} src={src} alt={`Preview ${index}`} className="w-full h-24 object-cover rounded-lg shadow-sm" />
+                            {newImagePreviews.map((src, index) => (
+                                <img key={index} src={src} alt={`New Preview ${index}`} className="w-full h-24 object-cover rounded-lg shadow-sm" />
                             ))}
                         </div>
                     )}
@@ -527,8 +716,19 @@ const AddProduct = () => {
 
                 {/* Status */}
                 <h2 className="text-2xl font-semibold text-gray-800 border-b pb-2 mb-4 mt-6">Publish Status</h2>
-                <p className="text-gray-700">The product status will be set to "Pending" upon submission and will be visible on the All Products page after admin approval.</p>
-                <input type="hidden" {...register('status')} value="pending" />
+                <div>
+                    <label htmlFor="status" className="block text-gray-700 font-semibold mb-2">Status</label>
+                    <select
+                        id="status"
+                        {...register('status', { required: 'Status is required' })}
+                        className="select select-bordered w-full"
+                    >
+                        <option value="pending">Pending</option>
+                        <option value="published">Published</option>
+                        <option value="draft">Draft</option>
+                    </select>
+                    {errors.status && <p className="text-red-500 text-sm mt-1">{errors.status.message}</p>}
+                </div>
 
                 {/* Submit Button */}
                 <motion.button
@@ -536,13 +736,24 @@ const AddProduct = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="btn w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3 rounded-lg shadow-lg hover:from-blue-600 hover:to-indigo-700 transition duration-300 mt-8"
-                    disabled={loading}
+                    disabled={loading || updateProductMutation.isPending}
                 >
-                    {loading ? 'Adding Product...' : 'Add Product'}
+                    {(loading || updateProductMutation.isPending) ? 'Updating Product...' : 'Update Product'}
                 </motion.button>
             </form>
+            {/* Delete Button */}
+            <motion.button
+                type="button"
+                onClick={handleDeleteProduct}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="btn w-full bg-red-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-red-700 transition duration-300 mt-4"
+                disabled={deleteProductMutation.isPending}
+            >
+                {deleteProductMutation.isPending ? 'Deleting...' : 'Delete Product'}
+            </motion.button>
         </motion.div>
     );
 };
 
-export default AddProduct;
+export default EditProduct;

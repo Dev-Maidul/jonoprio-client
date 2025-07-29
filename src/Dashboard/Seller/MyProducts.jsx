@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaEdit, FaTrash, FaChevronDown, FaChevronUp, FaEye, FaShoppingBag, FaDollarSign, FaTimesCircle, FaCheckCircle } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 
 const MyProducts = () => {
   const { user } = useContext(AuthContext);
@@ -16,12 +17,31 @@ const MyProducts = () => {
   const [editedValue, setEditedValue] = useState('');
   const inputRef = useRef(null);
 
+  // Helper function to safely parse numeric values from MongoDB Extended JSON
+  // If value is like { "$numberInt": "759" }, it extracts "759" and parses.
+  // Otherwise, it tries to parse the value directly.
+  const parseNumber = (value) => {
+    if (typeof value === 'object' && value !== null && (value?.$numberInt !== undefined || value?.$numberDouble !== undefined)) {
+      return parseFloat(value.$numberInt || value.$numberDouble);
+    }
+    // If it's already a number or a string that parseFloat can handle
+    return parseFloat(value);
+  };
+  
+  const parseIntValue = (value) => {
+    if (typeof value === 'object' && value !== null && (value?.$numberInt !== undefined || value?.$numberDouble !== undefined)) {
+      return parseInt(value.$numberInt || value.$numberDouble);
+    }
+    return parseInt(value);
+  };
+
+
   // Fetch seller's products
   const { data: products, isLoading, isError, error } = useQuery({
     queryKey: ['myProducts', user?.email],
     queryFn: async () => {
       if (!user?.email) return [];
-      const { data } = await axiosSecure.get(`/seller/products/${user.email}`); // This route no longer requires auth on server
+      const { data } = await axiosSecure.get(`/seller/products/${user.email}`);
       return data;
     },
     enabled: !!user?.email,
@@ -37,7 +57,7 @@ const MyProducts = () => {
   // Mutation for updating product (inline edits, status toggle)
   const updateProductMutation = useMutation({
     mutationFn: async ({ productId, updateData }) => {
-      const { data } = await axiosSecure.put(`/seller/product/${productId}`, updateData); // This route no longer requires auth on server
+      const { data } = await axiosSecure.put(`/seller/product/${productId}`, updateData);
       return data;
     },
     onSuccess: () => {
@@ -54,7 +74,7 @@ const MyProducts = () => {
   // Mutation for deleting product
   const deleteProductMutation = useMutation({
     mutationFn: async (productId) => {
-      const { data } = await axiosSecure.delete(`/seller/product/${productId}`); // This route no longer requires auth on server
+      const { data } = await axiosSecure.delete(`/seller/product/${productId}`);
       return data;
     },
     onSuccess: () => {
@@ -89,9 +109,11 @@ const MyProducts = () => {
     }
 
     let updateData = {};
-    if (variantId) {
-      updateData = { [field]: editedValue };
-    } else {
+    if (field.startsWith('variants.')) {
+      updateData = { [field]: parseNumber(editedValue) };
+    } else if (field === 'price' || field === 'stock') {
+      updateData = { [field]: parseNumber(editedValue) };
+    } else if (field === 'isActive') {
       updateData = { [field]: editedValue };
     }
     
@@ -111,7 +133,8 @@ const MyProducts = () => {
   // Handle product status toggle (Active/Inactive)
   const handleStatusToggle = (productId, currentStatus) => {
     const newStatus = !currentStatus;
-    updateProductMutation.mutate({ productId, updateData: { isActive: newStatus } });
+    const newDbStatus = newStatus ? 'published' : 'pending';
+    updateProductMutation.mutate({ productId, updateData: { status: newDbStatus } });
   };
 
   // Handle product deletion
@@ -129,10 +152,18 @@ const MyProducts = () => {
     );
   }
   if (isError) {
-    return <div className="text-red-500 text-center">Error: {error.message}</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-500">
+        Error: {error.message}
+      </div>
+    );
   }
   if (!products || products.length === 0) {
-    return <div className="p-6 bg-white rounded-lg shadow-md"><p>You haven't added any products yet.</p></div>;
+    return (
+      <div className="p-6 bg-white rounded-lg shadow-md min-h-[200px] flex items-center justify-center">
+        <p className="text-gray-600 text-lg">You haven't added any products yet.</p>
+      </div>
+    );
   }
 
   return (
@@ -140,30 +171,30 @@ const MyProducts = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="p-6 bg-white rounded-lg shadow-md"
+      className="p-8 bg-white rounded-lg shadow-md w-full"
     >
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">My Products</h1>
+      <h1 className="text-3xl font-bold text-gray-800 mb-8">My Products</h1>
       
-      {/* Bulk Actions (Placeholder) */}
-      <div className="mb-4 flex items-center space-x-2">
-        <input type="checkbox" className="checkbox" />
-        <span className="text-gray-600">0 products selected</span>
-        <button className="btn btn-sm btn-outline btn-warning">Deactivate</button>
-        <button className="btn btn-sm btn-outline btn-error">Delete</button>
-        <button className="btn btn-sm btn-outline">Export Selected</button>
+      {/* Bulk Actions */}
+      <div className="flex items-center space-x-3 mb-6">
+        <input type="checkbox" className="checkbox checkbox-primary" />
+        <span className="text-gray-600 font-medium">0 products selected</span>
+        <button className="btn btn-sm btn-outline btn-warning ml-4 text-orange-500 hover:bg-orange-500 hover:text-white transition-colors">Deactivate</button>
+        <button className="btn btn-sm btn-outline btn-error text-red-500 hover:bg-red-500 hover:text-white transition-colors">Delete</button>
+        <button className="btn btn-sm btn-outline text-gray-600 hover:bg-gray-100 transition-colors">Export Selected</button>
       </div>
 
       <div className="overflow-x-auto">
         <table className="table w-full">
           <thead>
-            <tr>
-              <th></th>
-              <th>Product Info</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Active</th>
-              <th>Content Score</th>
-              <th>Actions</th>
+            <tr className="bg-gray-100 text-gray-700 uppercase text-sm leading-normal">
+              <th className="py-3 px-6 text-left"></th>
+              <th className="py-3 px-6 text-left">Product Info</th>
+              <th className="py-3 px-6 text-left">Price</th>
+              <th className="py-3 px-6 text-left">Stock</th>
+              <th className="py-3 px-6 text-center">Active</th>
+              <th className="py-3 px-6 text-center">Content Score</th>
+              <th className="py-3 px-6 text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -175,17 +206,21 @@ const MyProducts = () => {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.3 }}
-                    className="hover:bg-gray-50"
+                    className="hover:bg-gray-50 border-b border-gray-200"
                   >
-                    <td><input type="checkbox" className="checkbox" /></td>
-                    <td className="flex items-center space-x-3 py-4">
+                    <td className="py-3 px-6"><input type="checkbox" className="checkbox checkbox-sm checkbox-primary" /></td>
+                    <td className="flex items-center space-x-3 py-3 px-6">
                       <div className="avatar">
                         <div className="mask mask-squircle w-16 h-16">
                           <img src={product.images[0]} alt={product.productName} />
                         </div>
                       </div>
                       <div>
-                        <div className="font-bold">{product.productName}</div>
+                        <div className="font-bold">
+                          <Link to={`/product/${product._id}`} className="hover:text-blue-600 transition-colors duration-200">
+                              {product.productName}
+                          </Link>
+                        </div>
                         <div className="text-sm opacity-50">
                           {product.category}
                         </div>
@@ -194,7 +229,7 @@ const MyProducts = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="whitespace-nowrap">
+                    <td className="whitespace-nowrap py-3 px-6">
                       {editingCell?.productId === product._id && editingCell?.field === 'price' ? (
                         <input
                           ref={inputRef}
@@ -202,34 +237,34 @@ const MyProducts = () => {
                           step="0.01"
                           value={editedValue}
                           onChange={(e) => setEditedValue(e.target.value)}
-                          onBlur={() => handleSaveEdit(product._id, 'price')}
-                          onKeyDown={(e) => handleKeyDown(e, product._id, 'price')}
+                          onBlur={() => handleSaveEdit(product._id, 'price', null, parseNumber(product.price))}
+                          onKeyDown={(e) => handleKeyDown(e, product._id, 'price', null, parseNumber(product.price))}
                           className="input input-sm w-24"
                         />
                       ) : (
-                        <span onClick={() => handleEditClick(product._id, 'price', product.price)} className="cursor-pointer hover:bg-gray-200 px-2 py-1 rounded">
-                          ৳ {product.price?.toFixed(2)} <FaEdit className="inline-block ml-1 text-xs" />
+                        <span onClick={() => handleEditClick(product._id, 'price', parseNumber(product.price))} className="cursor-pointer hover:bg-gray-200 px-2 py-1 rounded">
+                          ৳ {parseNumber(product.price)?.toFixed(2)} <FaEdit className="inline-block ml-1 text-xs" />
                         </span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap">
+                    <td className="whitespace-nowrap py-3 px-6">
                       {editingCell?.productId === product._id && editingCell?.field === 'stock' ? (
                         <input
                           ref={inputRef}
                           type="number"
                           value={editedValue}
                           onChange={(e) => setEditedValue(e.target.value)}
-                          onBlur={() => handleSaveEdit(product._id, 'stock')}
-                          onKeyDown={(e) => handleKeyDown(e, product._id, 'stock')}
+                          onBlur={() => handleSaveEdit(product._id, 'stock', null, parseIntValue(product.stock))}
+                          onKeyDown={(e) => handleKeyDown(e, product._id, 'stock', null, parseIntValue(product.stock))}
                           className="input input-sm w-20"
                         />
                       ) : (
-                        <span onClick={() => handleEditClick(product._id, 'stock', product.stock)} className="cursor-pointer hover:bg-gray-200 px-2 py-1 rounded">
-                          {product.stock} <FaEdit className="inline-block ml-1 text-xs" />
+                        <span onClick={() => handleEditClick(product._id, 'stock', parseIntValue(product.stock))} className="cursor-pointer hover:bg-gray-200 px-2 py-1 rounded">
+                          {parseIntValue(product.stock)} <FaEdit className="inline-block ml-1 text-xs" />
                         </span>
                       )}
                     </td>
-                    <td>
+                    <td className="py-3 px-6 text-center">
                       <input
                         type="checkbox"
                         className="toggle toggle-success"
@@ -238,18 +273,18 @@ const MyProducts = () => {
                         disabled={updateProductMutation.isPending}
                       />
                     </td>
-                    <td>
-                      <span className="text-green-600 flex items-center">
+                    <td className="py-3 px-6 text-center">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         <FaCheckCircle className="mr-1" /> Excellent
                       </span>
                     </td>
-                    <td>
+                    <td className="py-3 px-6 text-center">
                       <div className="dropdown dropdown-end">
                         <div tabIndex={0} role="button" className="btn btn-ghost btn-xs">
                           Edit <FaChevronDown className="ml-1" />
                         </div>
                         <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-36">
-                          <li><a href={`/dashboard/edit-product/${product._id}`}>Edit Product</a></li>
+                          <li><Link to={`/dashboard/edit-product/${product._id}`}>Edit Product</Link></li>
                           <li><a onClick={() => handleDeleteProduct(product._id)} className="text-red-500">Delete</a></li>
                         </ul>
                       </div>
@@ -263,10 +298,10 @@ const MyProducts = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.3 }}
-                      className="bg-gray-50"
+                      className="bg-gray-50 border-b border-gray-200"
                     >
                       <td></td>
-                      <td colSpan="6">
+                      <td colSpan="6" className="py-1 px-6">
                         <button
                           className="text-sm text-blue-600 hover:underline flex items-center"
                           onClick={() => toggleVariants(product._id)}
@@ -290,12 +325,12 @@ const MyProducts = () => {
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
                           transition={{ duration: 0.3 }}
-                          className="bg-gray-50 border-t border-gray-100"
+                          className="bg-gray-50 border-t border-gray-100 hover:bg-gray-100"
                         >
-                          <td></td>
-                          <td className="flex items-center space-x-3 py-2 pl-6">
+                          <td className="py-2 px-6"></td>
+                          <td className="flex items-center space-x-3 py-2 px-6 pl-10">
                             <div className="avatar">
-                              <div className="mask mask-squircle w-12 h-12">
+                              <div className="mask mask-squircle w-10 h-10">
                                 <img src={product.images[0]} alt={variant.color} /> 
                               </div>
                             </div>
@@ -304,7 +339,7 @@ const MyProducts = () => {
                               <div className="text-sm opacity-50">SKU: {variant.sellerSku}</div>
                             </div>
                           </td>
-                          <td className="whitespace-nowrap">
+                          <td className="whitespace-nowrap py-2 px-6">
                             {editingCell?.productId === product._id && editingCell?.variantId === vIndex && editingCell?.field === 'variantPrice' ? (
                               <input
                                 ref={inputRef}
@@ -312,34 +347,34 @@ const MyProducts = () => {
                                 step="0.01"
                                 value={editedValue}
                                 onChange={(e) => setEditedValue(e.target.value)}
-                                onBlur={() => handleSaveEdit(product._id, `variants.${vIndex}.variantPrice`, vIndex)}
-                                onKeyDown={(e) => handleKeyDown(e, product._id, `variants.${vIndex}.variantPrice`, vIndex)}
+                                onBlur={() => handleSaveEdit(product._id, `variants.${vIndex}.variantPrice`, vIndex, parseNumber(variant.variantPrice))}
+                                onKeyDown={(e) => handleKeyDown(e, product._id, `variants.${vIndex}.variantPrice`, vIndex, parseNumber(variant.variantPrice))}
                                 className="input input-sm w-24"
                               />
                             ) : (
-                              <span onClick={() => handleEditClick(product._id, 'variantPrice', variant.variantPrice, vIndex)} className="cursor-pointer hover:bg-gray-200 px-2 py-1 rounded">
-                                ৳ {variant.variantPrice?.toFixed(2) || product.price?.toFixed(2)} <FaEdit className="inline-block ml-1 text-xs" />
+                              <span onClick={() => handleEditClick(product._id, 'variantPrice', parseNumber(variant.variantPrice), vIndex)} className="cursor-pointer hover:bg-gray-200 px-2 py-1 rounded">
+                                ৳ {parseNumber(variant.variantPrice)?.toFixed(2) || parseNumber(product.price)?.toFixed(2)} <FaEdit className="inline-block ml-1 text-xs" />
                               </span>
                             )}
                           </td>
-                          <td className="whitespace-nowrap">
+                          <td className="whitespace-nowrap py-2 px-6">
                             {editingCell?.productId === product._id && editingCell?.variantId === vIndex && editingCell?.field === 'variantStock' ? (
                               <input
                                 ref={inputRef}
                                 type="number"
                                 value={editedValue}
                                 onChange={(e) => setEditedValue(e.target.value)}
-                                onBlur={() => handleSaveEdit(product._id, `variants.${vIndex}.variantStock`, vIndex)}
-                                onKeyDown={(e) => handleKeyDown(e, product._id, `variants.${vIndex}.variantStock`, vIndex)}
+                                onBlur={() => handleSaveEdit(product._id, `variants.${vIndex}.variantStock`, vIndex, parseIntValue(variant.variantStock))}
+                                onKeyDown={(e) => handleKeyDown(e, product._id, `variants.${vIndex}.variantStock`, vIndex, parseIntValue(variant.variantStock))}
                                 className="input input-sm w-20"
                               />
                             ) : (
-                              <span onClick={() => handleEditClick(product._id, 'variantStock', variant.variantStock, vIndex)} className="cursor-pointer hover:bg-gray-200 px-2 py-1 rounded">
-                                {variant.variantStock} <FaEdit className="inline-block ml-1 text-xs" />
+                              <span onClick={() => handleEditClick(product._id, 'variantStock', parseIntValue(variant.variantStock), vIndex)} className="cursor-pointer hover:bg-gray-200 px-2 py-1 rounded">
+                                {parseIntValue(variant.variantStock)} <FaEdit className="inline-block ml-1 text-xs" />
                               </span>
                             )}
                           </td>
-                          <td colSpan="3">
+                          <td colSpan="3" className="py-2 px-6">
                           </td>
                         </motion.tr>
                       ))}
@@ -354,5 +389,4 @@ const MyProducts = () => {
     </motion.div>
   );
 };
-
 export default MyProducts;

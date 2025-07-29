@@ -43,7 +43,7 @@ const ErrorPage = () => {
         className="text-lg md:text-xl mb-8 max-w-xl"
         variants={itemVariants}
       >
-        Oops! The property you're looking for doesn't seem to exist. It might have been sold,
+        Oops! The products you're looking for doesn't seem to exist. It might have been sold,
         removed, or you might have typed the address incorrectly.
       </motion.p>
       <motion.div
