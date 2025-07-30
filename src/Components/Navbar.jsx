@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import logo from "../assets/Logo.png";
+import logo1 from "../assets/Logo1.png";
 import toast from "react-hot-toast";
 import useAuth from '../Hooks/useAuth';
 import CustomButton from "./CustomButton";
@@ -79,18 +80,18 @@ const Navbar = () => {
           >
             <Link to="/" className="flex-shrink-0">
               <img
-                src={logo}
+                src={logo1}
                 alt="Logo"
-                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full max-w-full"
+                className="w-[250px] md:w-full h-12 "
                 style={{ objectFit: "cover" }}
               />
             </Link>
-            <Link
+            {/* <Link
               to="/"
               className="text-2xl sm:text-3xl font-extrabold text-gray-800 hidden sm:block truncate"
             >
               Jonoprio.com
-            </Link>
+            </Link> */}
           </motion.div>
 
           {/* Desktop Menu */}

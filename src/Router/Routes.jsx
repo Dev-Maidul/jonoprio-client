@@ -16,6 +16,7 @@ import SellerOrders from "../Dashboard/Seller/SellerOrders";
 import SellerRoute from './SellerRoute';
 import ProductDetails from "../Pages/Products/ProductDetails";
 import EditProduct from "../Dashboard/Seller/EditProduct";
+import CheckoutPage from "../Pages/Products/CheckoutPage";
 
 
 
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
       {
         path: "/reset-password",
         element: <ResetPassword />,
+      },
+      {
+        path: "/checkout",
+        element: <CheckoutPage />,
       },
     ],
   },
