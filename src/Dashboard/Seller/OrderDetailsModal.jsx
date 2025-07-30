@@ -2,7 +2,16 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FaTimes } from 'react-icons/fa';
 
-const OrderDetailsModal = ({ order, onClose }) => {
+const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
+
+  // Helper function to parse numbers
+  const parseNumber = (value) => {
+    if (typeof value === 'object' && value !== null && (value?.$numberInt !== undefined || value?.$numberDouble !== undefined)) {
+      return parseFloat(value.$numberInt || value.$numberDouble);
+    }
+    return parseFloat(value) || 0;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -26,7 +35,7 @@ const OrderDetailsModal = ({ order, onClose }) => {
         >
           <FaTimes />
         </button>
-        <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Order Details (ID: {order._id.substring(0,8)}...)</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Order Details (ID: {order._id.substring(0, 8)}...)</h2>
 
         {/* Customer Info */}
         <div className="mb-6">
@@ -44,12 +53,12 @@ const OrderDetailsModal = ({ order, onClose }) => {
           <div className="space-y-4">
             {order.orderItems?.map((item, idx) => (
               <div key={idx} className="flex items-center space-x-4 border-b pb-2 last:border-b-0 last:pb-0">
-                <img src={item.productImage || "fallback-image"} alt={item.productName} className="w-16 h-16 object-cover rounded" />
+                <img src={item.productImage || BASE64_FALLBACK_IMAGE} alt={item.productName} className="w-16 h-16 object-cover rounded" />
                 <div>
                   <p className="font-semibold text-gray-800">{item.productName} {item.variant?.color ? `(${item.variant.color})` : ''}</p>
-                  <p className="text-sm text-gray-600">Quantity: {item.quantity} x ৳{item.price}</p>
+                  <p className="text-sm text-gray-600">Quantity: {item.quantity} x ৳{parseNumber(item.price).toFixed(2)}</p>
                 </div>
-                <span className="font-bold text-gray-800 ml-auto">৳{item.price * item.quantity}</span>
+                <span className="font-bold text-gray-800 ml-auto">৳{(parseNumber(item.price) * item.quantity).toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -58,12 +67,27 @@ const OrderDetailsModal = ({ order, onClose }) => {
         {/* Payment & Shipping Summary */}
         <div className="mb-6">
           <h3 className="text-xl font-semibold text-gray-700 mb-2">Payment & Shipping Summary:</h3>
-          <p className="text-gray-600"><strong>Subtotal:</strong> ৳{order.subtotal}</p>
-          <p className="text-gray-600"><strong>Shipping:</strong> {order.shippingMethod} (৳{order.shippingCost})</p>
-          <p className="text-gray-600"><strong>Total:</strong> ৳{order.totalAmount}</p>
-          <p className="text-gray-600"><strong>Payment Method:</strong> {order.paymentMethod}</p>
+          <p className="text-gray-600"><strong>Subtotal:</strong> ৳{parseNumber(order.subtotal).toFixed(2)}</p>
+          <p className="text-gray-600"><strong>Shipping:</strong> {order.shippingMethod} (৳{parseNumber(order.shippingCost).toFixed(2)})</p>
+          <p className="text-gray-600"><strong>Total:</strong> ৳{parseNumber(order.totalAmount).toFixed(2)}</p>
+          <p className="text-gray-600"><strong>Payment Method:</strong> {order.paymentMethod === 'cashOnDelivery' ? 'Cash on Delivery' : 'Mobile Banking / Bank'}</p>
           <p className="text-gray-600"><strong>Order Date:</strong> {new Date(order.orderDate).toLocaleDateString()}</p>
           <p className="text-gray-600"><strong>Status:</strong> <span className="capitalize">{order.status}</span></p>
+
+          {/* Mobile Banking Payment Details */}
+          {order.paymentMethod === 'mobileBanking' && (
+            <div className="mt-4 p-3 border rounded-lg bg-gray-50">
+              <h4 className="font-semibold text-gray-800 mb-1">Mobile Banking Payment Details:</h4>
+              <p className="text-gray-600"><strong>Transaction ID:</strong> {order.transactionId}</p>
+              <p className="text-gray-600"><strong>Payment Amount:</strong> ৳{parseNumber(order.paymentAmount).toFixed(2)}</p>
+              {order.paymentScreenshot?.url && (
+                <div className="mt-2">
+                  <p className="text-gray-600"><strong>Screenshot:</strong></p>
+                  <img src={order.paymentScreenshot.url} alt="Payment Screenshot" className="w-32 h-32 object-cover rounded-md" />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="text-right">
