@@ -17,6 +17,8 @@ import SellerRoute from './SellerRoute';
 import ProductDetails from "../Pages/Products/ProductDetails";
 import EditProduct from "../Dashboard/Seller/EditProduct";
 import CheckoutPage from "../Pages/Products/CheckoutPage";
+import Thankyou from "../Pages/Products/ThankYouPage";
+import ThankYouPage from "../Pages/Products/ThankYouPage";
 
 
 
@@ -54,6 +56,10 @@ export const router = createBrowserRouter([
       {
         path: "/checkout",
         element: <CheckoutPage />,
+      },
+      {
+        path: "/thank-you",
+        element: <ThankYouPage/>,
       },
     ],
   },
