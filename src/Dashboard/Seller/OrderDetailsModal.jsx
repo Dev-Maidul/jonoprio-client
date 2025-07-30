@@ -1,15 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaTimes } from 'react-icons/fa';
 
 const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
 
-  // Helper function to parse numbers
+  // State for controlling the zoomed-in image modal
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  // Helper function to parse MongoDB extended JSON to normal number
   const parseNumber = (value) => {
-    if (typeof value === 'object' && value !== null && (value?.$numberInt !== undefined || value?.$numberDouble !== undefined)) {
+    if (value && typeof value === 'object') {
+      // Check if it's a MongoDB extended type, like $numberInt or $numberDouble
       return parseFloat(value.$numberInt || value.$numberDouble);
     }
     return parseFloat(value) || 0;
+  };
+
+  // Function to handle the click on payment screenshot
+  const handleImageClick = (url) => {
+    setSelectedImage(url);
+    setIsImageModalOpen(true);
+  };
+
+  // Function to close the image modal
+  const closeImageModal = () => {
+    setIsImageModalOpen(false);
+    setSelectedImage(null);
+  };
+
+  // Convert orderDate to a readable time format (HH:mm:ss)
+  const formatOrderTime = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString(); // Will show in HH:mm:ss format
   };
 
   return (
@@ -56,9 +79,9 @@ const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
                 <img src={item.productImage || BASE64_FALLBACK_IMAGE} alt={item.productName} className="w-16 h-16 object-cover rounded" />
                 <div>
                   <p className="font-semibold text-gray-800">{item.productName} {item.variant?.color ? `(${item.variant.color})` : ''}</p>
-                  <p className="text-sm text-gray-600">Quantity: {item.quantity} x ৳{parseNumber(item.price).toFixed(2)}</p>
+                  <p className="text-sm text-gray-600">Quantity: {parseNumber(item.quantity)} x ৳{parseNumber(item.price).toFixed(2)}</p>
                 </div>
-                <span className="font-bold text-gray-800 ml-auto">৳{(parseNumber(item.price) * item.quantity).toFixed(2)}</span>
+                <span className="font-bold text-gray-800 ml-auto">৳{(parseNumber(item.price) * parseNumber(item.quantity)).toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -72,18 +95,24 @@ const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
           <p className="text-gray-600"><strong>Total:</strong> ৳{parseNumber(order.totalAmount).toFixed(2)}</p>
           <p className="text-gray-600"><strong>Payment Method:</strong> {order.paymentMethod === 'cashOnDelivery' ? 'Cash on Delivery' : 'Mobile Banking / Bank'}</p>
           <p className="text-gray-600"><strong>Order Date:</strong> {new Date(order.orderDate).toLocaleDateString()}</p>
+          <p className="text-gray-600"><strong>Order Time:</strong> {formatOrderTime(order.orderDate)}</p> {/* Display order time */}
           <p className="text-gray-600"><strong>Status:</strong> <span className="capitalize">{order.status}</span></p>
 
           {/* Mobile Banking Payment Details */}
           {order.paymentMethod === 'mobileBanking' && (
             <div className="mt-4 p-3 border rounded-lg bg-gray-50">
               <h4 className="font-semibold text-gray-800 mb-1">Mobile Banking Payment Details:</h4>
-              <p className="text-gray-600"><strong>Transaction ID:</strong> {order.transactionId}</p>
-              <p className="text-gray-600"><strong>Payment Amount:</strong> ৳{parseNumber(order.paymentAmount).toFixed(2)}</p>
-              {order.paymentScreenshot?.url && (
+              <p className="text-gray-600"><strong>Transaction ID:</strong> {order.manualPayment?.transactionId || "N/A"}</p>
+              <p className="text-gray-600"><strong>Payment Amount:</strong> ৳{parseNumber(order.manualPayment?.paymentAmount || order.totalAmount).toFixed(2)}</p>
+              {order.manualPayment?.paymentScreenshot?.url && (
                 <div className="mt-2">
                   <p className="text-gray-600"><strong>Screenshot:</strong></p>
-                  <img src={order.paymentScreenshot.url} alt="Payment Screenshot" className="w-32 h-32 object-cover rounded-md" />
+                  <img
+                    src={order.manualPayment.paymentScreenshot.url}
+                    alt="Payment Screenshot"
+                    className="w-32 h-32 object-cover rounded-md cursor-pointer"
+                    onClick={() => handleImageClick(order.manualPayment.paymentScreenshot.url)} // Handle image click
+                  />
                 </div>
               )}
             </div>
@@ -94,6 +123,28 @@ const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
           <button onClick={onClose} className="btn btn-outline">Close</button>
         </div>
       </motion.div>
+
+      {/* Modal for Zoomed-In Image */}
+      {isImageModalOpen && selectedImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 z-60 flex items-center justify-center">
+          <div className="relative w-full max-w-4xl">
+            <img
+              src={selectedImage}
+              alt="Payment Screenshot"
+              className="w-full h-auto max-h-[90vh] object-contain cursor-zoom-out"
+              onClick={closeImageModal} // Close zoom modal on image click
+            />
+            <button
+              onClick={closeImageModal}
+              className="absolute top-4 right-4 text-white text-3xl"
+              aria-label="Close"
+            >
+              <FaTimes />
+            </button>
+          </div>
+        </div>
+      )}
+
     </motion.div>
   );
 };
