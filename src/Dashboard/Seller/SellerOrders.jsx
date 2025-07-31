@@ -4,10 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import useAxiosSecure from '../../hooks/useAxiosSecure';
 import { AuthContext } from '../../Context/AuthProvider';
 import toast from 'react-hot-toast';
-import { FaEye, FaClock, FaShippingFast, FaBoxOpen, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaEye, FaFilter, FaSort, FaCheckCircle, FaTimesCircle, FaClock, FaShippingFast, FaCheckDouble, FaDollarSign, FaBoxOpen } from 'react-icons/fa';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
-import OrderDetailsModal from './OrderDetailsModal'; // Import the modal component
+import OrderDetailsModal from './OrderDetailsModal';
 
 const SellerOrders = () => {
   const { user } = useContext(AuthContext);
@@ -32,8 +32,11 @@ const SellerOrders = () => {
     queryFn: async () => {
       if (!user?.email) return [];
       let url = `/seller/orders/${user.email}`;
+      // Backend should filter by order status based on 'orderItems.sellerEmail'
+      // This means the backend query for seller orders needs to consider the filterStatus.
+      // For this specific backend route, the filter should be handled after fetching all.
       const { data } = await axiosSecure.get(url);
-
+      
       if (filterStatus === 'All') {
         return data;
       }
@@ -53,6 +56,7 @@ const SellerOrders = () => {
       toast.success('Order status updated successfully!');
     },
     onError: (error) => {
+      console.error("Error updating order status:", error);
       toast.error(error.response?.data?.message || 'Failed to update order status.');
     },
   });
@@ -86,7 +90,6 @@ const SellerOrders = () => {
       </div>
     );
   }
-
   if (isError) {
     return (
       <div className="min-h-screen flex items-center justify-center text-red-500">
@@ -94,7 +97,6 @@ const SellerOrders = () => {
       </div>
     );
   }
-
   if (!orders || orders.length === 0) {
     return (
       <div className="p-8 bg-white rounded-lg shadow-md min-h-[200px] flex items-center justify-center">
@@ -131,6 +133,7 @@ const SellerOrders = () => {
             <option value="cancelled">Cancelled</option>
           </select>
         </div>
+        {/* Search input could go here */}
       </div>
 
       <div className="overflow-x-auto">
@@ -165,6 +168,22 @@ const SellerOrders = () => {
                       {getStatusIcon(order.status)}
                       <span>{order.status}</span>
                     </div>
+                    {updateOrderStatusMutation.isPending && updateOrderStatusMutation.variables?.orderId === order._id ? (
+                      <span className="loading loading-spinner loading-xs ml-2"></span>
+                    ) : (
+                      <select
+                        className="select select-ghost select-sm ml-2"
+                        value={order.status}
+                        onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                        disabled={updateOrderStatusMutation.isLoading}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    )}
                   </td>
                   <td className="py-3 px-6 text-center">
                     <button
@@ -187,6 +206,8 @@ const SellerOrders = () => {
           <OrderDetailsModal
             order={selectedOrder}
             onClose={() => setShowOrderDetailsModal(false)}
+            parseNumber={parseNumber}
+            BASE64_FALLBACK_IMAGE={BASE64_FALLBACK_IMAGE}
           />
         )}
       </AnimatePresence>
@@ -195,3 +216,4 @@ const SellerOrders = () => {
 };
 
 export default SellerOrders;
+

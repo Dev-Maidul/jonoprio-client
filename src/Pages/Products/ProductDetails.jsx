@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import useAxiosSecure from '../../hooks/useAxiosSecure';
@@ -20,7 +20,6 @@ import 'swiper/css/thumbs';
 import 'swiper/css/pagination';
 
 // Import ReviewModal
-
 import { AuthContext } from '../../Context/AuthProvider';
 import ReviewModal from './ReviewModal';
 
@@ -40,8 +39,6 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [totalPrice, setTotalPrice] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
-  // reviews state is now productReviews from useQuery
-  // const [reviews, setReviews] = useState([]); 
 
   // Fetch product details
   const { data: product, isLoading, isError, error, refetch: refetchProductDetails } = useQuery({
@@ -206,6 +203,11 @@ const ProductDetails = () => {
     toast.success("Thank you for your review!");
   };
 
+  const [isZoomEnabled, setIsZoomEnabled] = useState(false);
+
+  const handleImageZoom = () => {
+    setIsZoomEnabled(!isZoomEnabled);
+  };
 
   if (isLoading) {
     return (
@@ -249,104 +251,98 @@ const ProductDetails = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Product Images Slider */}
         <div className="flex flex-col items-center">
-            <div className="w-full max-w-lg mb-4">
-                <Swiper
-                    style={{
-                        '--swiper-navigation-color': '#000',
-                        '--swiper-pagination-color': '#000',
-                    }}
-                    loop={true}
-                    spaceBetween={10}
-                    navigation={true}
-                    thumbs={{ swiper: thumbsSwiper }}
-                    modules={[FreeMode, Navigation, Thumbs, Pagination, A11y]}
-                    className="mySwiper2 rounded-lg shadow-lg"
-                    pagination={{ clickable: true }}
-                    effect="fade"
-                    onClick={() => setIsImageModalOpen(true)}
-                    role="button"
-                    aria-label="Product image slider"
-                >
-                    {product.images?.length > 0 ? (
-                        product.images.map((img, index) => (
-                            <SwiperSlide key={img.public_id || index}>
-                                <img
-                                    src={img.url || BASE64_FALLBACK_IMAGE}
-                                    alt={`${product.productName || 'Product Image'} ${index + 1}`}
-                                    className="w-full h-96 object-contain bg-white"
-                                    onError={(e) => {
-                                        console.error(`Main Swiper image ${img.url} failed to load, using fallback:`, e.target.src);
-                                        e.target.src = BASE64_FALLBACK_IMAGE;
-                                    }}
-                                />
-                            </SwiperSlide>
-                        ))
-                    ) : (
-                        <SwiperSlide>
-                            <img src={BASE64_FALLBACK_IMAGE} alt="No Images Available" className="w-full h-96 object-contain bg-white" />
-                        </SwiperSlide>
-                    )}
-                </Swiper>
-            </div>
+          <div className="w-full max-w-lg mb-4">
+            <Swiper
+              style={{
+                '--swiper-navigation-color': '#000',
+                '--swiper-pagination-color': '#000',
+              }}
+              loop={true}
+              spaceBetween={10}
+              navigation={true}
+              thumbs={{ swiper: thumbsSwiper }}
+              modules={[FreeMode, Navigation, Thumbs, Pagination, A11y]}
+              className="mySwiper2 rounded-lg shadow-lg"
+              pagination={{ clickable: true }}
+              effect="fade"
+              onClick={handleImageZoom}
+              role="button"
+              aria-label="Product image slider"
+            >
+              {product.images?.length > 0 ? (
+                product.images.map((img, index) => (
+                  <SwiperSlide key={img.public_id || index}>
+                    <img
+                      src={img.url || BASE64_FALLBACK_IMAGE}
+                      alt={`${product.productName || 'Product Image'} ${index + 1}`}
+                      className="w-full h-96 object-contain bg-white"
+                      onError={(e) => {
+                        console.error(`Main Swiper image ${img.url} failed to load, using fallback:`, e.target.src);
+                        e.target.src = BASE64_FALLBACK_IMAGE;
+                      }}
+                    />
+                  </SwiperSlide>
+                ))
+              ) : (
+                <SwiperSlide>
+                  <img src={BASE64_FALLBACK_IMAGE} alt="No Images Available" className="w-full h-96 object-contain bg-white" />
+                </SwiperSlide>
+              )}
+            </Swiper>
+          </div>
 
-            {/* Thumbnails Swiper */}
-            <div className="w-full max-w-lg">
-                <Swiper
-                    onSwiper={setThumbsSwiper}
-                    loop={true}
-                    spaceBetween={10}
-                    slidesPerView={4}
-                    freeMode={true}
-                    watchSlidesProgress={true}
-                    modules={[FreeMode, Navigation, Thumbs]}
-                    className="mySwiper"
-                >
-                    {product.images?.length > 0 ? (
-                        product.images.map((img, index) => (
-                            <SwiperSlide key={img.public_id || index}>
-                                <img
-                                    src={img.url || BASE64_FALLBACK_IMAGE}
-                                    alt={`Thumbnail ${index + 1}`}
-                                    className="w-full h-20 object-cover rounded-md cursor-pointer"
-                                    onError={(e) => {
-                                        console.error(`Thumbnail Swiper image ${img.url} failed to load, using fallback:`, e.target.src);
-                                        e.target.src = BASE64_FALLBACK_IMAGE;
-                                    }}
-                                />
-                            </SwiperSlide>
-                        ))
-                    ) : (
-                        <SwiperSlide>
-                            <img src={BASE64_FALLBACK_IMAGE} alt="No Thumbnails" className="w-full h-20 object-cover rounded-md" />
-                        </SwiperSlide>
-                    )}
-                </Swiper>
-            </div>
+          {/* Thumbnails Swiper */}
+          <div className="w-full max-w-lg">
+            <Swiper
+              onSwiper={setThumbsSwiper}
+              loop={true}
+              spaceBetween={10}
+              slidesPerView={4}
+              freeMode={true}
+              watchSlidesProgress={true}
+              modules={[FreeMode, Navigation, Thumbs]}
+              className="mySwiper"
+            >
+              {product.images?.length > 0 ? (
+                product.images.map((img, index) => (
+                  <SwiperSlide key={img.public_id || index}>
+                    <img
+                      src={img.url || BASE64_FALLBACK_IMAGE}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="w-full h-20 object-cover rounded-md cursor-pointer"
+                      onError={(e) => {
+                        console.error(`Thumbnail Swiper image ${img.url} failed to load, using fallback:`, e.target.src);
+                        e.target.src = BASE64_FALLBACK_IMAGE;
+                      }}
+                    />
+                  </SwiperSlide>
+                ))
+              ) : (
+                <SwiperSlide>
+                  <img src={BASE64_FALLBACK_IMAGE} alt="No Thumbnails" className="w-full h-20 object-cover rounded-md" />
+                </SwiperSlide>
+              )}
+            </Swiper>
+          </div>
 
-            {/* Product Video */}
-            {productVideoEmbedUrl && (
-                <div className="mt-8 w-full max-w-lg">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-3 flex items-center">
-                        <FaPlayCircle className="mr-2 text-red-500" /> Product Video
-                    </h3>
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.5, delay: 0.5 }}
-                        className="relative w-full"
-                        style={{ paddingTop: '56.25%' }}
-                    >
-                        <iframe
-                            className="absolute top-0 left-0 w-full h-full rounded-lg shadow-lg"
-                            src={productVideoEmbedUrl}
-                            title="Product Video"
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                        ></iframe>
-                    </motion.div>
-                </div>
-            )}
+          {/* Image Zoom */}
+          {isZoomEnabled && mainImage?.url && (
+            <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" onClick={handleImageZoom}>
+              <motion.img
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.8 }}
+                transition={{ duration: 0.3 }}
+                src={mainImage.url}
+                alt="Zoomed Product Image"
+                className="max-w-full max-h-full object-contain bg-white"
+                onClick={(e) => e.stopPropagation()}
+                onError={(e) => {
+                  e.target.src = BASE64_FALLBACK_IMAGE;
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Product Details */}
@@ -514,7 +510,6 @@ const ProductDetails = () => {
                   <span className="ml-2 text-gray-600">{review.userName}</span>
                 </div>
                 <p className="text-gray-700">{review.comment}</p>
-                {/* <p className="text-sm text-gray-500">{new Date(review.date).toLocaleDateString()}</p> */}
               </div>
             ))}
           </div>
