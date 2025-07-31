@@ -48,7 +48,7 @@ const CustomerMenu = () => {
         </NavLink>
       </motion.li>
 
-      <motion.li variants={itemVariants}>
+      {/* <motion.li variants={itemVariants}>
         <NavLink
           to="/dashboard/my-wishlist"
           className={({ isActive }) =>
@@ -59,7 +59,7 @@ const CustomerMenu = () => {
         >
           <FaHeart className="mr-3" /> My Wishlist
         </NavLink>
-      </motion.li>
+      </motion.li> */}
 
       <motion.li variants={itemVariants}>
         <NavLink

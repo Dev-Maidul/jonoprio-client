@@ -27,46 +27,13 @@ const ProductsCard = ({ product }) => {
             {/* Product Image */}
             <div className="relative w-full h-60 overflow-hidden flex-shrink-0">
                 <img
-                    // FIX: images[0] থেকে .url প্রপার্টিটি অ্যাক্সেস করা হয়েছে
+                  
                     src={images && images.length > 0 ? images[0].url : 'https://placehold.co/400x400/E0E0E0/666666?text=No+Image'}
                     alt={productName}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                 />
                 {/* Quick Action Buttons on Hover */}
-                <div 
-                    className="absolute inset-x-0 bottom-0 py-3 flex items-center justify-center space-x-3 
-                               opacity-0 group-hover:opacity-100 transition-opacity duration-300 
-                               transform translate-y-full group-hover:translate-y-0"
-                    style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.1), rgba(0,0,0,0))' }}
-                >
-                    <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="p-3 rounded-full bg-white bg-opacity-80 text-gray-800 hover:bg-gray-200 transition-colors duration-200 backdrop-blur-sm cursor-pointer"
-                        title="Add to Wishlist"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); /* Add wishlist logic here */ }}
-                    >
-                        <FaHeart />
-                    </motion.button>
-                    <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="p-3 rounded-full bg-white bg-opacity-80 text-gray-800 hover:bg-gray-200 transition-colors duration-200 backdrop-blur-sm cursor-pointer"
-                        title="Quick View"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); /* Add quick view logic here */ }}
-                    >
-                        <FaEye />
-                    </motion.button>
-                    <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="p-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
-                        title="Add to Cart"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); /* Add cart logic here */ }}
-                    >
-                        <FaCartPlus />
-                    </motion.button>
-                </div>
+                
             </div>
 
             {/* Product Info */}
@@ -108,3 +75,39 @@ const ProductsCard = ({ product }) => {
 };
 
 export default ProductsCard;
+
+
+/* <div 
+                    className="absolute inset-x-0 bottom-0 py-3 flex items-center justify-center space-x-3 
+                               opacity-0 group-hover:opacity-100 transition-opacity duration-300 
+                               transform translate-y-full group-hover:translate-y-0"
+                    style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.1), rgba(0,0,0,0))' }}
+                >
+                    <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="p-3 rounded-full bg-white bg-opacity-80 text-gray-800 hover:bg-gray-200 transition-colors duration-200 backdrop-blur-sm cursor-pointer"
+                        title="Add to Wishlist"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); /* Add wishlist logic here */ 
+                //     >
+                //         <FaHeart />
+                //     </motion.button>
+                //     <motion.button
+                //         whileHover={{ scale: 1.1 }}
+                //         whileTap={{ scale: 0.9 }}
+                //         className="p-3 rounded-full bg-white bg-opacity-80 text-gray-800 hover:bg-gray-200 transition-colors duration-200 backdrop-blur-sm cursor-pointer"
+                //         title="Quick View"
+                //         onClick={(e) => { e.preventDefault(); e.stopPropagation(); /* Add quick view logic here */ }}
+                //     >
+                //         <FaEye />
+                //     </motion.button>
+                //     <motion.button
+                //         whileHover={{ scale: 1.1 }}
+                //         whileTap={{ scale: 0.9 }}
+                //         className="p-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
+                //         title="Add to Cart"
+                //         onClick={(e) => { e.preventDefault(); e.stopPropagation(); /* Add cart logic here */ }}
+                //     >
+                //         <FaCartPlus />
+                //     </motion.button>
+                // </div>
