@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import useAxiosSecure from '../../hooks/useAxiosSecure';
 import { AuthContext } from '../../Context/AuthProvider';
 import toast from 'react-hot-toast';
-import { FaEye, FaFilter, FaSort, FaCheckCircle, FaTimesCircle, FaClock, FaShippingFast, FaCheckDouble, FaDollarSign, FaBoxOpen } from 'react-icons/fa';
+import { FaEye, FaTimesCircle, FaClock, FaShippingFast, FaCheckCircle, FaBoxOpen } from 'react-icons/fa';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import OrderDetailsModal from './OrderDetailsModal';
@@ -18,7 +18,8 @@ const SellerOrders = () => {
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  // Parse numbers from MongoDB Extended JSON
+  const BASE64_FALLBACK_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAA...'; // replace this with actual base64 image string
+
   const parseNumber = (value) => {
     if (typeof value === 'object' && value !== null && (value?.$numberInt !== undefined || value?.$numberDouble !== undefined)) {
       return parseFloat(value.$numberInt || value.$numberDouble);
@@ -26,15 +27,11 @@ const SellerOrders = () => {
     return parseFloat(value) || 0;
   };
 
-  // Fetch seller's orders
   const { data: orders, isLoading, isError, error } = useQuery({
     queryKey: ['sellerOrders', user?.email, filterStatus],
     queryFn: async () => {
       if (!user?.email) return [];
       let url = `/seller/orders/${user.email}`;
-      // Backend should filter by order status based on 'orderItems.sellerEmail'
-      // This means the backend query for seller orders needs to consider the filterStatus.
-      // For this specific backend route, the filter should be handled after fetching all.
       const { data } = await axiosSecure.get(url);
       
       if (filterStatus === 'All') {
@@ -45,7 +42,6 @@ const SellerOrders = () => {
     enabled: !!user?.email,
   });
 
-  // Mutation for updating order status
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }) => {
       const { data } = await axiosSecure.put(`/order/status/${orderId}`, { status });
@@ -56,17 +52,14 @@ const SellerOrders = () => {
       toast.success('Order status updated successfully!');
     },
     onError: (error) => {
-      console.error("Error updating order status:", error);
       toast.error(error.response?.data?.message || 'Failed to update order status.');
     },
   });
 
-  // Handle status change
   const handleStatusChange = (orderId, newStatus) => {
     updateOrderStatusMutation.mutate({ orderId, status: newStatus });
   };
 
-  // Show order details modal
   const handleViewDetails = (order) => {
     setSelectedOrder(order);
     setShowOrderDetailsModal(true);
@@ -114,7 +107,6 @@ const SellerOrders = () => {
     >
       <h1 className="text-3xl font-bold text-gray-800 mb-8">Manage Orders</h1>
 
-      {/* Filters and Search */}
       <div className="mb-6 flex flex-wrap gap-4 items-center">
         <div className="form-control">
           <label className="label">
@@ -133,7 +125,6 @@ const SellerOrders = () => {
             <option value="cancelled">Cancelled</option>
           </select>
         </div>
-        {/* Search input could go here */}
       </div>
 
       <div className="overflow-x-auto">
@@ -200,7 +191,6 @@ const SellerOrders = () => {
         </table>
       </div>
 
-      {/* Order Details Modal */}
       <AnimatePresence>
         {showOrderDetailsModal && selectedOrder && (
           <OrderDetailsModal
@@ -216,4 +206,3 @@ const SellerOrders = () => {
 };
 
 export default SellerOrders;
-

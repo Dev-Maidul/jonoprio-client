@@ -3,36 +3,29 @@ import { motion } from 'framer-motion';
 import { FaTimes } from 'react-icons/fa';
 
 const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
-
-  // State for controlling the zoomed-in image modal
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  // Helper function to parse MongoDB extended JSON to normal number
   const parseNumber = (value) => {
     if (value && typeof value === 'object') {
-      // Check if it's a MongoDB extended type, like $numberInt or $numberDouble
       return parseFloat(value.$numberInt || value.$numberDouble);
     }
     return parseFloat(value) || 0;
   };
 
-  // Function to handle the click on payment screenshot
   const handleImageClick = (url) => {
     setSelectedImage(url);
     setIsImageModalOpen(true);
   };
 
-  // Function to close the image modal
   const closeImageModal = () => {
     setIsImageModalOpen(false);
     setSelectedImage(null);
   };
 
-  // Convert orderDate to a readable time format (HH:mm:ss)
   const formatOrderTime = (timestamp) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString(); // Will show in HH:mm:ss format
+    return date.toLocaleTimeString();
   };
 
   return (
@@ -60,7 +53,6 @@ const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
         </button>
         <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Order Details (ID: {order._id.substring(0, 8)}...)</h2>
 
-        {/* Customer Info */}
         <div className="mb-6">
           <h3 className="text-xl font-semibold text-gray-700 mb-2">Customer Information:</h3>
           <p className="text-gray-600"><strong>Name:</strong> {order.customerInfo?.name}</p>
@@ -70,7 +62,6 @@ const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
           {order.customerInfo?.orderNotes && <p className="text-gray-600"><strong>Notes:</strong> {order.customerInfo.orderNotes}</p>}
         </div>
 
-        {/* Order Items */}
         <div className="mb-6">
           <h3 className="text-xl font-semibold text-gray-700 mb-2">Ordered Products:</h3>
           <div className="space-y-4">
@@ -87,7 +78,6 @@ const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
           </div>
         </div>
 
-        {/* Payment & Shipping Summary */}
         <div className="mb-6">
           <h3 className="text-xl font-semibold text-gray-700 mb-2">Payment & Shipping Summary:</h3>
           <p className="text-gray-600"><strong>Subtotal:</strong> ৳{parseNumber(order.subtotal).toFixed(2)}</p>
@@ -95,10 +85,9 @@ const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
           <p className="text-gray-600"><strong>Total:</strong> ৳{parseNumber(order.totalAmount).toFixed(2)}</p>
           <p className="text-gray-600"><strong>Payment Method:</strong> {order.paymentMethod === 'cashOnDelivery' ? 'Cash on Delivery' : 'Mobile Banking / Bank'}</p>
           <p className="text-gray-600"><strong>Order Date:</strong> {new Date(order.orderDate).toLocaleDateString()}</p>
-          <p className="text-gray-600"><strong>Order Time:</strong> {formatOrderTime(order.orderDate)}</p> {/* Display order time */}
+          <p className="text-gray-600"><strong>Order Time:</strong> {formatOrderTime(order.orderDate)}</p>
           <p className="text-gray-600"><strong>Status:</strong> <span className="capitalize">{order.status}</span></p>
 
-          {/* Mobile Banking Payment Details */}
           {order.paymentMethod === 'mobileBanking' && (
             <div className="mt-4 p-3 border rounded-lg bg-gray-50">
               <h4 className="font-semibold text-gray-800 mb-1">Mobile Banking Payment Details:</h4>
@@ -111,7 +100,7 @@ const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
                     src={order.manualPayment.paymentScreenshot.url}
                     alt="Payment Screenshot"
                     className="w-32 h-32 object-cover rounded-md cursor-pointer"
-                    onClick={() => handleImageClick(order.manualPayment.paymentScreenshot.url)} // Handle image click
+                    onClick={() => handleImageClick(order.manualPayment.paymentScreenshot.url)}
                   />
                 </div>
               )}
@@ -124,7 +113,6 @@ const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
         </div>
       </motion.div>
 
-      {/* Modal for Zoomed-In Image */}
       {isImageModalOpen && selectedImage && (
         <div className="fixed inset-0 bg-black bg-opacity-80 z-60 flex items-center justify-center">
           <div className="relative w-full max-w-4xl">
@@ -132,7 +120,7 @@ const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
               src={selectedImage}
               alt="Payment Screenshot"
               className="w-full h-auto max-h-[90vh] object-contain cursor-zoom-out"
-              onClick={closeImageModal} // Close zoom modal on image click
+              onClick={closeImageModal}
             />
             <button
               onClick={closeImageModal}
@@ -144,7 +132,6 @@ const OrderDetailsModal = ({ order, onClose, BASE64_FALLBACK_IMAGE }) => {
           </div>
         </div>
       )}
-
     </motion.div>
   );
 };
