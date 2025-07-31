@@ -19,6 +19,10 @@ import EditProduct from "../Dashboard/Seller/EditProduct";
 import CheckoutPage from "../Pages/Products/CheckoutPage";
 import Thankyou from "../Pages/Products/ThankYouPage";
 import ThankYouPage from "../Pages/Products/ThankYouPage";
+import CustomerHome from "../Dashboard/Customer/CustomerHome";
+import MyOrders from "../Dashboard/Customer/MyOrders";
+import MyWishlist from "../Dashboard/Customer/MyWishlist";
+import MyProfile from "../Dashboard/Customer/MyProfile";
 
 
 
@@ -95,10 +99,10 @@ export const router = createBrowserRouter([
       { path: "seller-orders", element: <SellerOrders /> },
       { path: "edit-product/:id", element: <EditProduct /> },
       // // Customer Routes
-      // { path: "customer-home", element: <CustomerHome /> },
-      // { path: "my-orders", element: <MyOrders /> },
-      // { path: "my-wishlist", element: <MyWishlist /> },
-      // { path: "my-profile", element: <MyProfile /> },
+      { path: "customer-home", element: <CustomerHome /> },
+      { path: "my-orders", element: <MyOrders /> },
+      { path: "my-wishlist", element: <MyWishlist /> },
+      { path: "my-profile", element: <MyProfile /> },
     ],
   },
   {
