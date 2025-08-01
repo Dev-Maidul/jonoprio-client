@@ -1,0 +1,36 @@
+.admin-dashboard {
+  padding: 20px;
+}
+
+.dashboard-summary h2 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.key-metrics {
+  display: flex;
+  gap: 20px;
+}
+
+.metric-card {
+  border: 1px solid #ccc;
+  padding: 10px;
+  width: 150px;
+  text-align: center;
+}
+
+.orders-section, .products-section, .customer-overview, .security-alerts, .site-health {
+  margin-top: 30px;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+ul li {
+  background-color: #f9f9f9;
+  margin: 5px 0;
+  padding: 10px;
+  border: 1px solid #ddd;
+}
