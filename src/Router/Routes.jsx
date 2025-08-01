@@ -33,7 +33,13 @@ import ContactPage from "../Components/ContactPage";
 import WholesalePage from "../Components/WholesalePage";
 import NotificationsPage from "../Components/NotificationsPage";
 import CartPage from "../Components/CartPage";
-
+import PrivacyPolicy from "../Components/PrivacyPolicy";
+import WarrantyPolicy from "../Components/WarrantyPolicy";
+import TermsAndCondition from "../Components/TermsAndCondition"
+import ReturnAndRefund from "../Components/ReturnAndRefund";
+import PreorderTermCondition from "../Components/PreorderTermCondition";
+import FaqPage from "../Components/FaqPage";
+import AboutUs from "../Components/AboutUs";
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -51,6 +57,34 @@ export const router = createBrowserRouter([
       {
         path: "contact",
         element: <ContactPage />,
+      },
+      {
+        path: "/privacy-policy",
+        element: <PrivacyPolicy />,
+      },
+      {
+        path: "/warranty-policy",
+        element: <WarrantyPolicy />,
+      },
+      {
+        path: "/terms-conditions",
+        element: <TermsAndCondition></TermsAndCondition>
+      },
+      {
+        path: "/return-refund",
+        element: <ReturnAndRefund></ReturnAndRefund>
+      },
+      {
+        path: "/preOrder-conditions",
+        element: <PreorderTermCondition></PreorderTermCondition>
+      },
+      {
+        path: "/faq",
+        element: <FaqPage></FaqPage>
+      },
+      {
+        path: "/about-us",
+        element: <AboutUs></AboutUs>
       },
       {
         path: "wholesale",
