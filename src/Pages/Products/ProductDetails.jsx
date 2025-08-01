@@ -22,6 +22,7 @@ import 'swiper/css/pagination';
 // Import ReviewModal
 
 import { AuthContext } from '../../Context/AuthProvider';
+import ReviewModal from './ReviewModal';
 
 const BASE64_FALLBACK_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXRSTlMAQObYZgAAAFpJUVORK5CYII=';
 
@@ -91,23 +92,19 @@ const ProductDetails = () => {
 
   // Mutation for adding to cart
   const addToCartMutation = useMutation({
-    mutationFn: async () => {
-      // Client-side authentication for cart: ensure user is logged in
-      if (!user) {
-        toast.error("Please log in to add items to your cart.");
-        navigate('/login', { state: { from: window.location.pathname } });
-        throw new Error("User not logged in");
-      }
-      const payload = {
-        userId: user?.uid,
-        productId: id,
-        quantity,
-        variant: selectedVariant,
-      };
-      return await axiosSecure.post('/cart/add', payload);
-    },
+   mutationFn: async () => {
+    const payload = {
+      userId: user?.uid,
+      productId: id,
+      quantity,
+      variant: selectedVariant
+    };
+    const response = await axiosSecure.post('/cart/add', payload);
+    console.log("Backend response:", response.data);
+    return response;
+  },
     onSuccess: () => {
-      toast.success("Added to cart successfully!");
+      
     },
     onError: (error) => {
       console.error("Failed to add to cart:", error);
@@ -461,15 +458,16 @@ const ProductDetails = () => {
               <FaCartPlus className="mr-2" /> {addToCartMutation.isLoading ? 'Adding...' : 'Add to Cart'}
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="btn btn-success text-white text-lg flex-1"
-              onClick={() => navigate('/checkout', { state: { product, quantity, selectedVariant } })}
-              disabled={stockValue === 0}
-              aria-label="Buy now"
-            >
-              Buy Now
-            </motion.button>
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.95 }}
+  className="btn btn-success text-white text-lg flex-1"
+  onClick={() => navigate('/checkout', { state: { product, quantity, selectedVariant } })}
+  disabled={stockValue === 0}
+  aria-label="Buy Now"
+>
+  Buy Now
+</motion.button>
+
             {/* // wishlist button */}
             <motion.button
               whileHover={{ scale: 1.05 }}

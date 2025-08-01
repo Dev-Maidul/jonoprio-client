@@ -17,7 +17,6 @@ import SellerRoute from "./SellerRoute";
 import ProductDetails from "../Pages/Products/ProductDetails";
 import EditProduct from "../Dashboard/Seller/EditProduct";
 import CheckoutPage from "../Pages/Products/CheckoutPage";
-import Thankyou from "../Pages/Products/ThankYouPage";
 import ThankYouPage from "../Pages/Products/ThankYouPage";
 import CustomerHome from "../Dashboard/Customer/CustomerHome";
 import MyOrders from "../Dashboard/Customer/MyOrders";
@@ -30,7 +29,10 @@ import ManageOrders from "../Dashboard/Admin/ManageOrders";
 import Analytics from "../Dashboard/Admin/Analytics";
 import AdminUpdateProduct from "../Dashboard/Admin/AdminUpdateProduct";
 import OrderDetails from "../Dashboard/Admin/OrderDetails";
-
+import ContactPage from "../Components/ContactPage";
+import WholesalePage from "../Components/WholesalePage";
+import NotificationsPage from "../Components/NotificationsPage";
+import CartPage from "../Components/CartPage";
 
 export const router = createBrowserRouter([
   {
@@ -43,37 +45,53 @@ export const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: "/all-products",
+        path: "all-products",
         element: <AllProducts />,
       },
       {
-        path: "/product/:id",
-        element: <ProductDetails></ProductDetails>,
+        path: "contact",
+        element: <ContactPage />,
       },
       {
-        path: "/login",
+        path: "wholesale",
+        element: <WholesalePage />,
+      },
+      {
+        path: "product/:id",
+        element: <ProductDetails />,
+      },
+      {
+        path: "login",
         element: <Login />,
       },
       {
-        path: "/signup",
+        path: "signup",
         element: <Signup />,
       },
       {
-        path: "/reset-password",
+        path: "reset-password",
         element: <ResetPassword />,
       },
       {
-        path: "/checkout",
+        path: "checkout",
         element: <CheckoutPage />,
       },
       {
-        path: "/thank-you",
+        path: "thank-you",
         element: <ThankYouPage />,
+      },
+      {
+        path: "notifications",
+        element: <NotificationsPage />,
+      },
+      {
+        path: "cart",
+        element: <CartPage />,
       },
     ],
   },
   {
-    path: "/dashboard",
+    path: "dashboard",
     element: (
       <PrivateRoute>
         <DashboardLayout />
@@ -86,15 +104,32 @@ export const router = createBrowserRouter([
         element: <DashboardRedirector />,
       },
       // Admin Routes
-      { path: "admin-home", element: <AdminHome /> },
-      { path: "manage-users", element: <ManageUsers /> },
-      { path: "manage-products", element: <ManageProducts /> },
-      { path: "manage-orders", element: <ManageOrders /> },
-      { path: "analytics", element: <Analytics /> },
-       { path: "/dashboard/order/:orderId", element: <OrderDetails /> },
-
+      { 
+        path: "admin-home", 
+        element: <AdminHome /> 
+      },
+      { 
+        path: "manage-users", 
+        element: <ManageUsers /> 
+      },
+      { 
+        path: "manage-products", 
+        element: <ManageProducts /> 
+      },
+      { 
+        path: "manage-orders", 
+        element: <ManageOrders /> 
+      },
+      { 
+        path: "analytics", 
+        element: <Analytics /> 
+      },
+      { 
+        path: "order/:orderId", 
+        element: <OrderDetails /> 
+      },
       {
-        path: "admin/update-product/:productId", // <-- Add dynamic segment for productId
+        path: "admin/update-product/:productId",
         element: <AdminUpdateProduct />,
       },
 
@@ -102,20 +137,45 @@ export const router = createBrowserRouter([
       {
         path: "seller-home",
         element: (
-          <PrivateRoute>
+          <SellerRoute>
             <SellerHome />
-          </PrivateRoute>
+          </SellerRoute>
         ),
       },
-      { path: "my-products", element: <MyProducts /> },
-      { path: "add-product", element: <AddProducts /> },
-      { path: "seller-orders", element: <SellerOrders /> },
-      { path: "edit-product/:id", element: <EditProduct /> },
-      // // Customer Routes
-      { path: "customer-home", element: <CustomerHome /> },
-      { path: "my-orders", element: <MyOrders /> },
-      { path: "my-wishlist", element: <MyWishlist /> },
-      { path: "my-profile", element: <MyProfile /> },
+      { 
+        path: "my-products", 
+        element: <MyProducts /> 
+      },
+      { 
+        path: "add-product", 
+        element: <AddProducts /> 
+      },
+      { 
+        path: "seller-orders", 
+        element: <SellerOrders /> 
+      },
+      { 
+        path: "edit-product/:id", 
+        element: <EditProduct /> 
+      },
+      
+      // Customer Routes
+      { 
+        path: "customer-home", 
+        element: <CustomerHome /> 
+      },
+      { 
+        path: "my-orders", 
+        element: <MyOrders /> 
+      },
+      { 
+        path: "my-wishlist", 
+        element: <MyWishlist /> 
+      },
+      { 
+        path: "my-profile", 
+        element: <MyProfile /> 
+      },
     ],
   },
   {

@@ -113,130 +113,179 @@ const AdminHome = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Orders Table */}
         <div className="bg-white p-4 rounded-lg shadow-lg">
           <h3 className="text-xl font-semibold mb-4">Recent Orders</h3>
           {recentOrders.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Email</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product(s)</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+              <table className="w-full">
+                <colgroup>
+                  <col className="w-1/4" />
+                  <col className="w-2/5" />
+                  <col className="w-1/6" />
+                  <col className="w-1/5" />
+                </colgroup>
+                <thead>
+                  <tr className="bg-gray-100 text-left">
+                    <th className="p-2 text-sm font-medium text-gray-700">Customer</th>
+                    <th className="p-2 text-sm font-medium text-gray-700">Products</th>
+                    <th className="p-2 text-sm font-medium text-gray-700">Status</th>
+                    <th className="p-2 text-sm font-medium text-gray-700">Total</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody>
                   {recentOrders.map(order => (
-                    <tr key={order._id}>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{order.customerInfo?.userEmail ? order.customerInfo.userEmail : 'Not Found'}</td>
-                      <td className="px-4 py-2 whitespace-normal text-sm text-gray-900">
-                        {order.orderItems
-                          ?.map(item => item.productName)
-                          .join(', ') || 'Not Found'}
+                    <tr key={order._id} className="border-t hover:bg-gray-50">
+                      <td className="p-2 text-sm text-gray-800 truncate">
+                        {order.customerInfo?.userEmail || 'N/A'}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{order.status || 'Not Found'}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{order.totalAmount ? order.totalAmount.toLocaleString() + ' ৳' : 'Not Found'}</td>
+                      <td className="p-2 text-sm text-gray-800 truncate">
+                        {order.orderItems?.slice(0, 2).map(item => item.productName).join(', ') || 'N/A'}
+                        {order.orderItems?.length > 2 && '...'}
+                      </td>
+                      <td className="p-2 text-sm text-gray-800">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {order.status || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="p-2 text-sm text-gray-800">
+                        {order.totalAmount ? `${order.totalAmount.toLocaleString()} ৳` : 'N/A'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="text-center">No recent orders.</p>
+            <p className="text-center text-gray-500 py-4">No recent orders found</p>
           )}
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-lg cursor-pointer">
+        {/* Pending Orders Chart */}
+        <div className="bg-white p-4 rounded-lg shadow-lg">
           <h3 className="text-xl font-semibold mb-4">Pending Orders</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={ordersChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="value" fill="#8884d8">
-                {ordersChartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={ordersChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="value" fill="#8884d8">
+                  {ordersChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-lg cursor-pointer">
-          <h3 className="text-xl font-semibold mb-4">Products</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={productsChartData.slice(0, 5)}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="value" fill="#82ca9d">
-                {productsChartData.slice(0, 5).map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+        {/* Products Chart */}
+        <div className="bg-white p-4 rounded-lg shadow-lg">
+          <h3 className="text-xl font-semibold mb-4">Top Products</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={productsChartData.slice(0, 5)}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="value" fill="#82ca9d">
+                  {productsChartData.slice(0, 5).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-lg cursor-pointer">
+        {/* Customer Overview */}
+        <div className="bg-white p-4 rounded-lg shadow-lg">
           <h3 className="text-xl font-semibold mb-4">Customer Overview</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie
-                data={customersChartData}
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-                label
-              >
-                {customersChartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-          <p>Total Customers: {customers.totalCustomers.toLocaleString()}</p>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={customersChartData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label
+                >
+                  {customersChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-center mt-2">
+            Total Customers: <span className="font-semibold">{customers.totalCustomers?.toLocaleString() || 0}</span>
+          </p>
         </div>
 
+        {/* Security Alerts */}
         <div className="bg-white p-4 rounded-lg shadow-lg">
           <h3 className="text-xl font-semibold mb-4">Security Alerts</h3>
           {securityAlerts.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alert</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+              <table className="w-full">
+                <colgroup>
+                  <col className="w-3/5" />
+                  <col className="w-2/5" />
+                </colgroup>
+                <thead>
+                  <tr className="bg-gray-100 text-left">
+                    <th className="p-2 text-sm font-medium text-gray-700">Alert</th>
+                    <th className="p-2 text-sm font-medium text-gray-700">Time</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody>
                   {securityAlerts.map(alert => (
-                    <tr key={alert.time}>
-                      <td className="px-4 py-2 whitespace-normal text-sm text-gray-900">{alert.alert}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{new Date(alert.time).toLocaleString()}</td>
+                    <tr key={alert.time} className="border-t hover:bg-gray-50">
+                      <td className="p-2 text-sm text-gray-800 truncate">
+                        {alert.alert}
+                      </td>
+                      <td className="p-2 text-sm text-gray-800">
+                        {new Date(alert.time).toLocaleTimeString()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="text-center">No security alerts.</p>
+            <p className="text-center text-gray-500 py-4">No security alerts</p>
           )}
         </div>
 
+        {/* Site Health */}
         <div className="bg-white p-4 rounded-lg shadow-lg">
           <h3 className="text-xl font-semibold mb-4">Site Health</h3>
-          <p>Uptime: {siteHealth.uptime} seconds</p>
-          <p>Load Time: {siteHealth.loadTime}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <p className="text-sm text-blue-600 font-medium">Uptime</p>
+              <p className="text-xl font-bold">
+                {Math.floor(siteHealth.uptime / 3600)}h {Math.floor((siteHealth.uptime % 3600) / 60)}m
+              </p>
+            </div>
+            <div className="bg-green-50 p-3 rounded-lg">
+              <p className="text-sm text-green-600 font-medium">Load Time</p>
+              <p className="text-xl font-bold">{siteHealth.loadTime}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -17,7 +17,8 @@ const CheckoutPage = () => {
 
   const BASE64_FALLBACK_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXRSTlMAQObYZgAAAFpJUVORK5CYII=';
 
-  const { product, quantity = 1, selectedVariant } = location.state || {}; 
+  // Get cart items from location state
+  const { cartItems = [], subtotal = 0, totalItems = 0 } = location.state || {};
 
   const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm({
     defaultValues: {
@@ -39,24 +40,15 @@ const CheckoutPage = () => {
     'ঢাকার বাইরে': 130,
   };
 
-  const parseNumber = (value) => {
-    if (typeof value === 'object' && value !== null && (value?.$numberInt !== undefined || value?.$numberDouble !== undefined)) {
-      return parseFloat(value.$numberInt || value.$numberDouble);
-    }
-    return parseFloat(value) || 0;
-  };
-  const productPrice = selectedVariant?.variantPrice ? parseNumber(selectedVariant.variantPrice) : (product ? parseNumber(product.price) : 0);
-
-  const subtotal = productPrice * quantity;
-  const shippingCost = SHIPPING_COSTS[selectedShippingMethod] || 0;
-  const totalAmount = subtotal + shippingCost;
-
   useEffect(() => {
-    if (!product) {
-      toast.error("কোনো পণ্য চেকআউটের জন্য পাওয়া যায়নি। অনুগ্রহ করে প্রথমে একটি পণ্য নির্বাচন করুন।");
-      navigate('/all-products');
+    if (!cartItems || cartItems.length === 0) {
+      toast.error("কোনো পণ্য চেকআউটের জন্য পাওয়া যায়নি। অনুগ্রহ করে প্রথমে একটি পণ্য নির্বাচন করুন।", {
+        duration: 4000,
+        position: 'top-center'
+      });
+      navigate('/cart', { state: { checkoutError: true } });
     }
-  }, [product, navigate]);
+  }, [cartItems, navigate]);
 
   const handlePaymentScreenshotChange = (e) => {
     const file = e.target.files[0];
@@ -71,35 +63,24 @@ const CheckoutPage = () => {
   };
 
   const onSubmit = async (data) => {
+    if (cartItems.length === 0) {
+      toast.error("আপনার কার্টে কোনো পণ্য নেই");
+      return;
+    }
+
     let uploadedScreenshotInfo = null;
     if (selectedPaymentMethod === 'mobileBanking' && paymentScreenshotFile) {
-        try {
-            uploadedScreenshotInfo = await imageUpload(paymentScreenshotFile);
-            toast.success("পেমেন্টের স্ক্রিনশট সফলভাবে আপলোড হয়েছে!");
-        } catch (uploadError) {
-            console.error("Payment screenshot upload failed:", uploadError);
-            toast.error("পেমেন্টের স্ক্রিনশট আপলোড ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।");
-            return;
-        }
+      try {
+        uploadedScreenshotInfo = await imageUpload(paymentScreenshotFile);
+        toast.success("পেমেন্টের স্ক্রিনশট সফলভাবে আপলোড হয়েছে!");
+      } catch (uploadError) {
+        console.error("Payment screenshot upload failed:", uploadError);
+        toast.error("পেমেন্টের স্ক্রিনশট আপলোড ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।");
+        return;
+      }
     }
 
     try {
-      const orderItems = [{
-        productId: product._id,
-        productName: product.productName,
-        productImage: product.images?.[0]?.url || null,
-        price: productPrice,
-        quantity: quantity,
-        variant: selectedVariant ? {
-          color: selectedVariant.color,
-          variantPrice: parseNumber(selectedVariant.variantPrice),
-          variantStock: parseInt(selectedVariant.variantStock),
-          sellerSku: selectedVariant.sellerSku
-        } : null,
-        sellerEmail: product.sellerEmail,
-        sellerUid: product.sellerUid,
-      }];
-
       const orderPayload = {
         customerInfo: {
           name: data.customerName,
@@ -110,17 +91,17 @@ const CheckoutPage = () => {
           createAccount: data.createAccount,
           orderNotes: data.orderNotes || null,
         },
-        orderItems: orderItems,
+        orderItems: cartItems,
         subtotal: subtotal,
         shippingMethod: selectedShippingMethod,
-        shippingCost: shippingCost,
-        totalAmount: totalAmount,
+        shippingCost: SHIPPING_COSTS[selectedShippingMethod] || 0,
+        totalAmount: subtotal + (SHIPPING_COSTS[selectedShippingMethod] || 0),
         paymentMethod: data.paymentMethod,
         
         manualPayment: selectedPaymentMethod === 'mobileBanking' ? {
-            transactionId: data.transactionId,
-            paymentScreenshot: uploadedScreenshotInfo,
-            mobileBankingType: data.mobileBankingType // e.g., Bkash, Nagad
+          transactionId: data.transactionId,
+          paymentScreenshot: uploadedScreenshotInfo,
+          mobileBankingType: data.mobileBankingType
         } : undefined,
       };
 
@@ -128,8 +109,13 @@ const CheckoutPage = () => {
 
       if (response.data.orderId) {
         toast.success("অর্ডার সফলভাবে সম্পন্ন হয়েছে! অর্ডার আইডি: " + response.data.orderId);
-        // UPDATED: Sending full orderPayload and orderId to ThankYouPage
-        navigate('/thank-you', { state: { orderId: response.data.orderId, orderDetails: orderPayload, orderDate: new Date().toISOString() } }); 
+        navigate('/thank-you', { 
+          state: { 
+            orderId: response.data.orderId, 
+            orderDetails: orderPayload, 
+            orderDate: new Date().toISOString() 
+          } 
+        });
       } else {
         toast.error("অর্ডার সম্পন্ন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।");
       }
@@ -140,7 +126,7 @@ const CheckoutPage = () => {
     }
   };
 
-  if (!product) {
+  if (!cartItems || cartItems.length === 0) {
     return null;
   }
 
@@ -198,7 +184,13 @@ const CheckoutPage = () => {
                 <input
                   type="tel"
                   id="customerNumber"
-                  {...register('customerNumber', { required: 'আপনার ফোন নাম্বার প্রয়োজন' })}
+                  {...register('customerNumber', { 
+                    required: 'আপনার ফোন নাম্বার প্রয়োজন',
+                    pattern: {
+                      value: /^01[3-9]\d{8}$/,
+                      message: 'সঠিক মোবাইল নাম্বার দিন'
+                    }
+                  })}
                   className="input input-bordered w-full"
                   placeholder="আপনার ফোন নাম্বার"
                 />
@@ -221,15 +213,26 @@ const CheckoutPage = () => {
                   <input
                     type="email"
                     id="customerEmail"
-                    {...register('customerEmail')}
+                    {...register('customerEmail', {
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        message: 'সঠিক ইমেইল দিন'
+                      }
+                    })}
                     className="input input-bordered w-full"
                     placeholder="উদাহরণ: example@example.com"
                   />
+                  {errors.customerEmail && <p className="text-red-500 text-sm mt-1">{errors.customerEmail.message}</p>}
                 </div>
               )}
               <div className="form-control">
                 <label className="label cursor-pointer justify-start">
-                  <input type="checkbox" {...register('createAccount')} className="checkbox checkbox-primary mr-2" disabled />
+                  <input 
+                    type="checkbox" 
+                    {...register('createAccount')} 
+                    className="checkbox checkbox-primary mr-2" 
+                    disabled={!!user}
+                  />
                   <span className="label-text">একটি অ্যাকাউন্ট তৈরি করুন?</span>
                 </label>
               </div>
@@ -267,12 +270,22 @@ const CheckoutPage = () => {
             <h2 className="text-2xl font-bold text-gray-800 mb-4 mt-8 border-b pb-2">শিপিং</h2>
             <div className="space-y-3">
               <label className="flex items-center cursor-pointer">
-                <input type="radio" {...register('shippingMethod', { required: 'শিপিং পদ্ধতি প্রয়োজন' })} value="ঢাকার ভেতরে" className="radio radio-primary mr-2" />
+                <input 
+                  type="radio" 
+                  {...register('shippingMethod', { required: 'শিপিং পদ্ধতি প্রয়োজন' })} 
+                  value="ঢাকার ভেতরে" 
+                  className="radio radio-primary mr-2" 
+                />
                 <span className="label-text flex-1">ঢাকার ভেতরে</span>
                 <span className="font-semibold text-gray-700">৳{SHIPPING_COSTS['ঢাকার ভেতরে']}</span>
               </label>
               <label className="flex items-center cursor-pointer">
-                <input type="radio" {...register('shippingMethod')} value="ঢাকার বাইরে" className="radio radio-primary mr-2" />
+                <input 
+                  type="radio" 
+                  {...register('shippingMethod')} 
+                  value="ঢাকার বাইরে" 
+                  className="radio radio-primary mr-2" 
+                />
                 <span className="label-text flex-1">ঢাকার বাইরে</span>
                 <span className="font-semibold text-gray-700">৳{SHIPPING_COSTS['ঢাকার বাইরে']}</span>
               </label>
@@ -283,35 +296,41 @@ const CheckoutPage = () => {
           {/* Right Section: Your order */}
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">আপনার অর্ডার</h2>
-            <div className="flex items-center space-x-4 mb-4">
-              <img
-                src={product.images?.[0]?.url || BASE64_FALLBACK_IMAGE}
-                alt={product.productName}
-                className="w-24 h-24 object-cover rounded-lg"
-                onError={e => { e.target.src = BASE64_FALLBACK_IMAGE; }}
-              />
-              <div>
-                <h3 className="font-bold text-gray-800">{product.productName}</h3>
-                {selectedVariant && (
-                  <p className="text-sm text-gray-600">ভ্যারিয়েন্ট: {selectedVariant.color}</p>
-                )}
-                <p className="text-sm text-gray-600">পরিমাণ: {quantity}</p>
-              </div>
-              <span className="text-lg font-bold text-gray-800 ml-auto">৳{subtotal.toFixed(2)}</span>
+            
+            {/* Show all cart items */}
+            <div className="max-h-96 overflow-y-auto mb-4">
+              {cartItems.map((item, index) => (
+                <div key={index} className="flex items-center space-x-4 mb-4 border-b pb-4">
+                  <img
+                    src={item.productImage || BASE64_FALLBACK_IMAGE}
+                    alt={item.productName}
+                    className="w-16 h-16 object-cover rounded-lg"
+                    onError={(e) => { e.target.src = BASE64_FALLBACK_IMAGE; }}
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-bold text-gray-800">{item.productName}</h3>
+                    {item.variant && (
+                      <p className="text-sm text-gray-600">ভ্যারিয়েন্ট: {item.variant.color || item.variant}</p>
+                    )}
+                    <p className="text-sm text-gray-600">পরিমাণ: {item.quantity}</p>
+                  </div>
+                  <span className="text-lg font-bold text-gray-800">৳{(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+              ))}
             </div>
 
-            <div className="border-t pt-4 mt-4 space-y-2">
+            <div className="border-t pt-4 space-y-2">
               <div className="flex justify-between text-gray-700">
                 <span>সাবটোটাল</span>
                 <span>৳{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-700">
                 <span>শিপিং</span>
-                <span>৳{shippingCost.toFixed(2)}</span>
+                <span>৳{(SHIPPING_COSTS[selectedShippingMethod] || 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-xl font-bold text-gray-800 border-t pt-2 mt-2">
                 <span>মোট</span>
-                <span>৳{totalAmount.toFixed(2)}</span>
+                <span>৳{(subtotal + (SHIPPING_COSTS[selectedShippingMethod] || 0)).toFixed(2)}</span>
               </div>
             </div>
 
@@ -319,12 +338,22 @@ const CheckoutPage = () => {
             <h2 className="text-2xl font-bold text-gray-800 mb-4 mt-8 border-b pb-2">পেমেন্ট পদ্ধতি</h2>
             <div className="space-y-3">
               <label className="flex items-center cursor-pointer">
-                <input type="radio" {...register('paymentMethod', { required: 'পেমেন্ট পদ্ধতি প্রয়োজন' })} value="cashOnDelivery" className="radio radio-primary mr-2" />
+                <input 
+                  type="radio" 
+                  {...register('paymentMethod', { required: 'পেমেন্ট পদ্ধতি প্রয়োজন' })} 
+                  value="cashOnDelivery" 
+                  className="radio radio-primary mr-2" 
+                />
                 <span className="label-text flex-1">ক্যাশ অন ডেলিভারি</span>
                 <span className="text-gray-500 text-sm">পণ্য হাতে পেয়ে পেমেন্ট করুন।</span>
               </label>
               <label className="flex items-center cursor-pointer">
-                <input type="radio" {...register('paymentMethod')} value="mobileBanking" className="radio radio-primary mr-2" />
+                <input 
+                  type="radio" 
+                  {...register('paymentMethod')} 
+                  value="mobileBanking" 
+                  className="radio radio-primary mr-2" 
+                />
                 <span className="label-text flex-1">মোবাইল ব্যাংকিং / ব্যাংক পেমেন্ট</span>
                 <span className="text-gray-500 text-sm">বিকাশ, নগদ, রকেট অথবা ব্যাংক ট্রান্সফার।</span>
               </label>
@@ -333,52 +362,54 @@ const CheckoutPage = () => {
 
             {/* Manual Mobile Banking Payment Options */}
             {selectedPaymentMethod === 'mobileBanking' && (
-                <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    transition={{ duration: 0.3 }}
-                    className="mt-4 p-4 border rounded-lg bg-gray-50 overflow-hidden space-y-4"
-                >
-                    <h3 className="text-lg font-bold text-gray-800 mb-3">ম্যানুয়াল পেমেন্ট বিবরণী: মোবাইল ব্যাংকিং / ব্যাংক</h3>
-                    <p className="text-gray-700 text-base leading-relaxed">
-                        আপনার অর্ডারটি নিশ্চিত করতে, অনুগ্রহ করে মোট পরিমাণ (<span className="font-bold text-xl text-blue-600">৳{totalAmount.toFixed(2)}</span>) নিচের যেকোনো একটি মোবাইল ব্যাংকিং নম্বর অথবা ব্যাংক একাউন্টে পাঠান:
-                    </p>
-                    <ul className="list-disc pl-5 text-gray-800 text-base space-y-2">
-                        <li><span className="font-semibold text-blue-700">বিকাশ (পার্সোনাল):</span> <span className="font-bold">017XXXXXXXX</span></li>
-                        <li><span className="font-semibold text-blue-700">নগদ (পার্সোনাল):</span> <span className="font-bold">018XXXXXXXX</span></li>
-                        <li><span className="font-semibold text-blue-700">রকেট (পার্সোনাল):</span> <span className="font-bold">019XXXXXXXX</span></li>
-                        <li><span className="font-semibold text-blue-700">ব্যাংক ট্রান্সফার:</span> <br />&nbsp;&nbsp;&nbsp;ব্যাংকের নাম: <span className="font-bold">উদাহরণ ব্যাংক</span> <br />&nbsp;&nbsp;&nbsp;একাউন্ট নং: <span className="font-bold">1234567890</span> <br />&nbsp;&nbsp;&nbsp;শাখা: <span className="font-bold">ঢাকা প্রধান শাখা</span></li>
-                    </ul>
-                    <p className="text-red-600 text-base font-bold mt-4">
-                        পেমেন্ট সম্পন্ন করার পর, অনুগ্রহ করে নিচে আপনার ট্রানজেকশন আইডি এবং পেমেন্টের স্ক্রিনশট (ঐচ্ছিক) প্রদান করুন।
-                    </p>
-                    
-                    <div>
-                        <label htmlFor="transactionId" className="block text-gray-700 font-semibold mb-2">ট্রানজেকশন আইডি *</label>
-                        <input
-                            type="text"
-                            id="transactionId"
-                            {...register('transactionId', { required: 'ট্রানজেকশন আইডি প্রয়োজন' })}
-                            className="input input-bordered w-full"
-                            placeholder="উদাহরণ: 8N7X2G5B"
-                        />
-                        {errors.transactionId && <p className="text-red-500 text-sm mt-1">{errors.transactionId.message}</p>}
-                    </div>
-                    <div>
-                        <label htmlFor="paymentScreenshot" className="block text-gray-700 font-semibold mb-2">পেমেন্ট স্ক্রিনশট (ঐচ্ছিক)</label>
-                        <input
-                            type="file"
-                            id="paymentScreenshot"
-                            accept="image/*"
-                            {...register('paymentScreenshot')}
-                            onChange={handlePaymentScreenshotChange}
-                            className="file-input file-input-bordered w-full"
-                        />
-                        {paymentScreenshotPreview && (
-                            <img src={paymentScreenshotPreview} alt="Payment Screenshot Preview" className="mt-2 h-24 w-24 object-cover rounded-md" />
-                        )}
-                    </div>
-                </motion.div>
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                transition={{ duration: 0.3 }}
+                className="mt-4 p-4 border rounded-lg bg-gray-50 overflow-hidden space-y-4"
+              >
+                <h3 className="text-lg font-bold text-gray-800 mb-3">ম্যানুয়াল পেমেন্ট বিবরণী: মোবাইল ব্যাংকিং / ব্যাংক</h3>
+                <p className="text-gray-700 text-base leading-relaxed">
+                  আপনার অর্ডারটি নিশ্চিত করতে, অনুগ্রহ করে মোট পরিমাণ (<span className="font-bold text-xl text-blue-600">৳{(subtotal + (SHIPPING_COSTS[selectedShippingMethod] || 0)).toFixed(2)}</span>) নিচের যেকোনো একটি মোবাইল ব্যাংকিং নম্বর অথবা ব্যাংক একাউন্টে পাঠান:
+                </p>
+                <ul className="list-disc pl-5 text-gray-800 text-base space-y-2">
+                  <li><span className="font-semibold text-blue-700">বিকাশ (পার্সোনাল):</span> <span className="font-bold">017XXXXXXXX</span></li>
+                  <li><span className="font-semibold text-blue-700">নগদ (পার্সোনাল):</span> <span className="font-bold">018XXXXXXXX</span></li>
+                  <li><span className="font-semibold text-blue-700">রকেট (পার্সোনাল):</span> <span className="font-bold">019XXXXXXXX</span></li>
+                  <li><span className="font-semibold text-blue-700">ব্যাংক ট্রান্সফার:</span> <br />&nbsp;&nbsp;&nbsp;ব্যাংকের নাম: <span className="font-bold">উদাহরণ ব্যাংক</span> <br />&nbsp;&nbsp;&nbsp;একাউন্ট নং: <span className="font-bold">1234567890</span> <br />&nbsp;&nbsp;&nbsp;শাখা: <span className="font-bold">ঢাকা প্রধান শাখা</span></li>
+                </ul>
+                <p className="text-red-600 text-base font-bold mt-4">
+                  পেমেন্ট সম্পন্ন করার পর, অনুগ্রহ করে নিচে আপনার ট্রানজেকশন আইডি এবং পেমেন্টের স্ক্রিনশট (ঐচ্ছিক) প্রদান করুন।
+                </p>
+                
+                <div>
+                  <label htmlFor="transactionId" className="block text-gray-700 font-semibold mb-2">ট্রানজেকশন আইডি *</label>
+                  <input
+                    type="text"
+                    id="transactionId"
+                    {...register('transactionId', { 
+                      required: selectedPaymentMethod === 'mobileBanking' ? 'ট্রানজেকশন আইডি প্রয়োজন' : false 
+                    })}
+                    className="input input-bordered w-full"
+                    placeholder="উদাহরণ: 8N7X2G5B"
+                  />
+                  {errors.transactionId && <p className="text-red-500 text-sm mt-1">{errors.transactionId.message}</p>}
+                </div>
+                <div>
+                  <label htmlFor="paymentScreenshot" className="block text-gray-700 font-semibold mb-2">পেমেন্ট স্ক্রিনশট (ঐচ্ছিক)</label>
+                  <input
+                    type="file"
+                    id="paymentScreenshot"
+                    accept="image/*"
+                    {...register('paymentScreenshot')}
+                    onChange={handlePaymentScreenshotChange}
+                    className="file-input file-input-bordered w-full"
+                  />
+                  {paymentScreenshotPreview && (
+                    <img src={paymentScreenshotPreview} alt="Payment Screenshot Preview" className="mt-2 h-24 w-24 object-cover rounded-md" />
+                  )}
+                </div>
+              </motion.div>
             )}
 
             <p className="text-sm text-gray-700 mt-6 text-center">
