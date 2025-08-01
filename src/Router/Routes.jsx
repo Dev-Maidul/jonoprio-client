@@ -23,6 +23,11 @@ import CustomerHome from "../Dashboard/Customer/CustomerHome";
 import MyOrders from "../Dashboard/Customer/MyOrders";
 import MyWishlist from "../Dashboard/Customer/MyWishlist";
 import MyProfile from "../Dashboard/Customer/MyProfile";
+import AdminHome from "../Dashboard/Admin/AdminHome";
+import ManageUsers from "../Dashboard/Admin/ManageUsers";
+import ManageProducts from "../Dashboard/Admin/ManageProducts";
+import ManageOrders from "../Dashboard/Admin/ManageOrders";
+import Analytics from "../Dashboard/Admin/Analytics";
 
 
 
@@ -80,12 +85,12 @@ export const router = createBrowserRouter([
         index: true,
         element: <DashboardRedirector />,
       },
-      // // Admin Routes
-      // { path: "admin-home", element: <AdminHome /> },
-      // { path: "manage-users", element: <ManageUsers /> },
-      // { path: "manage-products", element: <ManageProducts /> },
-      // { path: "manage-orders", element: <ManageOrders /> },
-      // { path: "analytics", element: <Analytics /> },
+      // Admin Routes
+      { path: "admin-home", element: <AdminHome /> },
+      { path: "manage-users", element: <ManageUsers /> },
+      { path: "manage-products", element: <ManageProducts /> },
+      { path: "manage-orders", element: <ManageOrders /> },
+      { path: "analytics", element: <Analytics /> },
 
       // Seller Routes
       { path: "seller-home",
