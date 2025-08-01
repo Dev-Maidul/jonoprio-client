@@ -28,6 +28,7 @@ import ManageUsers from "../Dashboard/Admin/ManageUsers";
 import ManageProducts from "../Dashboard/Admin/ManageProducts";
 import ManageOrders from "../Dashboard/Admin/ManageOrders";
 import Analytics from "../Dashboard/Admin/Analytics";
+import AdminUpdateProduct from "../Dashboard/Admin/AdminUpdateProduct";
 
 
 
@@ -91,6 +92,12 @@ export const router = createBrowserRouter([
       { path: "manage-products", element: <ManageProducts /> },
       { path: "manage-orders", element: <ManageOrders /> },
       { path: "analytics", element: <Analytics /> },
+      {
+  path: "admin/update-product/:productId", // <-- Add dynamic segment for productId
+  element: <AdminUpdateProduct />,
+},
+
+
 
       // Seller Routes
       { path: "seller-home",

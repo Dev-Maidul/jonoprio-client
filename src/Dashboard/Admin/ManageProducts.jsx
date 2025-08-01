@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { FaEye, FaCheck, FaTimes, FaPen, FaTrash } from 'react-icons/fa'; // Importing icons
-import useAxiosSecure from '../../Hooks/useAxiosSecure';
 
+import { useNavigate } from 'react-router-dom'; // Importing useNavigate hook
+import useAxiosSecure from '../../hooks/useAxiosSecure';
 
-function ManageProduct() {
+function ManageProducts() {
   const [products, setProducts] = useState([]);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [updatedProductData, setUpdatedProductData] = useState({});
   const axiosSecure = useAxiosSecure(); // Using the custom axios hook
+  const navigate = useNavigate(); // useNavigate hook for redirection
 
   // Fetching products from the server on component mount
   useEffect(() => {
@@ -28,34 +28,14 @@ function ManageProduct() {
     setShowViewModal(true);
   };
 
-  // Handle opening the Update Modal to edit product details
-  const handleUpdate = (product) => {
-    setUpdatedProductData({ ...product }); // Pre-populate form with existing data
-    setShowUpdateModal(true);
-  };
-
-  // Handle updating the product
-  const handleUpdateProduct = () => {
-    const { _id, ...updatedData } = updatedProductData; // Extract product ID and updated fields
-    axiosSecure.put(`/admin/products/update/${_id}`, updatedData)
-      .then(() => {
-        setProducts(products.map(p => p._id === _id ? { ...p, ...updatedData } : p)); // Update UI locally
-        setShowUpdateModal(false); // Close modal
-      })
-      .catch(error => {
-        console.error("Error updating product:", error);
-      });
-  };
-
-  // Handle closing the modals
+  // Handle closing the modal
   const handleCloseViewModal = () => {
     setShowViewModal(false);
     setSelectedProduct(null);
   };
 
-  const handleCloseUpdateModal = () => {
-    setShowUpdateModal(false);
-    setUpdatedProductData({});
+  const handleUpdate = (productId) => {
+    navigate(`/dashboard/admin/update-product/${productId}`); // Redirect to AdminUpdateProduct page with productId
   };
 
   // Handle approving the product
@@ -100,7 +80,7 @@ function ManageProduct() {
             <th className="px-4 py-2 text-left">S.No</th>
             <th className="px-4 py-2 text-left">Name</th>
             <th className="px-4 py-2 text-left">Image</th>
-            <th className="px-4 py-2 text-left">Price</th>
+            <th className="px-4 py-2 text-left">Price</th> {/* Updated column title */}
             <th className="px-4 py-2 text-left">Status</th>
             <th className="px-4 py-2 text-left">Actions</th>
           </tr>
@@ -117,34 +97,32 @@ function ManageProduct() {
                   <span>No Image</span>
                 )}
               </td>
-              <td className="px-4 py-2">{product.price}</td>
+              <td className="px-4 py-2">{product.specialPrice}</td> {/* Show specialPrice instead of price */}
               <td className="px-4 py-2">{product.status}</td>
               <td className="px-4 py-2 flex gap-3">
                 <button
                   className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 cursor-pointer flex items-center gap-1"
-                  onClick={() => handleView(product)}
+                  onClick={() => handleView(product)} // Open View Modal
                 >
                   <FaEye /> View
                 </button>
                 <button
-                  className={`bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 cursor-pointer flex items-center gap-1 ${product.status === 'approved' ? 'cursor-not-allowed opacity-50' : ''}`}
+                  className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 cursor-pointer flex items-center gap-1"
+                  onClick={() => handleUpdate(product._id)} // Redirect on Update button click
+                >
+                  <FaPen /> Update
+                </button>
+                <button
+                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 cursor-pointer flex items-center gap-1"
                   onClick={() => handleApprove(product._id)}
-                  disabled={product.status === 'approved'}
                 >
                   <FaCheck /> Approve
                 </button>
                 <button
-                  className={`bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 cursor-pointer flex items-center gap-1 ${product.status === 'rejected' ? 'cursor-not-allowed opacity-50' : ''}`}
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 cursor-pointer flex items-center gap-1"
                   onClick={() => handleReject(product._id)}
-                  disabled={product.status === 'rejected'}
                 >
                   <FaTimes /> Reject
-                </button>
-                <button
-                  className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 cursor-pointer flex items-center gap-1"
-                  onClick={() => handleUpdate(product)}
-                >
-                  <FaPen /> Update
                 </button>
                 <button
                   className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 cursor-pointer flex items-center gap-1"
@@ -164,7 +142,7 @@ function ManageProduct() {
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
             <h3 className="text-xl font-semibold mb-4">Product Details</h3>
             <p><strong>Name:</strong> {selectedProduct.productName}</p>
-            <p><strong>Price:</strong> {selectedProduct.price}</p>
+            <p><strong>Special Price:</strong> {selectedProduct.specialPrice}</p> {/* Show specialPrice here */}
             <p><strong>Description:</strong> {selectedProduct.description}</p>
             <p><strong>Seller:</strong> {selectedProduct.sellerName} ({selectedProduct.sellerEmail})</p>
             <p><strong>Status:</strong> {selectedProduct.status}</p>
@@ -172,69 +150,9 @@ function ManageProduct() {
             <div className="mt-4 flex gap-2">
               <button
                 className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-700 cursor-pointer"
-                onClick={handleCloseViewModal}
+                onClick={handleCloseViewModal} // Close the View Modal
               >
                 Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Update Product Modal */}
-      {showUpdateModal && updatedProductData && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-            <h3 className="text-xl font-semibold mb-4">Update Product</h3>
-            <input
-              type="text"
-              className="w-full p-2 mb-4 border border-gray-300 rounded"
-              placeholder="Product Name"
-              value={updatedProductData.productName}
-              onChange={(e) => setUpdatedProductData({ ...updatedProductData, productName: e.target.value })}
-            />
-            <input
-              type="number"
-              className="w-full p-2 mb-4 border border-gray-300 rounded"
-              placeholder="Price"
-              value={updatedProductData.price}
-              onChange={(e) => setUpdatedProductData({ ...updatedProductData, price: e.target.value })}
-            />
-            <textarea
-              className="w-full p-2 mb-4 border border-gray-300 rounded"
-              placeholder="Description"
-              value={updatedProductData.description}
-              onChange={(e) => setUpdatedProductData({ ...updatedProductData, description: e.target.value })}
-            ></textarea>
-
-            {/* Read-Only Fields */}
-            <input
-              type="text"
-              className="w-full p-2 mb-4 border border-gray-300 rounded"
-              placeholder="Seller Name"
-              value={updatedProductData.sellerName}
-              readOnly
-            />
-            <input
-              type="email"
-              className="w-full p-2 mb-4 border border-gray-300 rounded"
-              placeholder="Seller Email"
-              value={updatedProductData.sellerEmail}
-              readOnly
-            />
-
-            <div className="flex gap-2 mt-4">
-              <button
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 cursor-pointer"
-                onClick={handleUpdateProduct}
-              >
-                Save Changes
-              </button>
-              <button
-                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-700 cursor-pointer"
-                onClick={handleCloseUpdateModal}
-              >
-                Cancel
               </button>
             </div>
           </div>
@@ -244,4 +162,4 @@ function ManageProduct() {
   );
 }
 
-export default ManageProduct;
+export default ManageProducts;
