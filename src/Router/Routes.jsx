@@ -13,7 +13,7 @@ import SellerHome from "../Dashboard/Seller/SellerHome";
 import MyProducts from "../Dashboard/Seller/MyProducts";
 import AddProducts from "../Dashboard/Seller/AddProducts";
 import SellerOrders from "../Dashboard/Seller/SellerOrders";
-import SellerRoute from './SellerRoute';
+import SellerRoute from "./SellerRoute";
 import ProductDetails from "../Pages/Products/ProductDetails";
 import EditProduct from "../Dashboard/Seller/EditProduct";
 import CheckoutPage from "../Pages/Products/CheckoutPage";
@@ -29,8 +29,7 @@ import ManageProducts from "../Dashboard/Admin/ManageProducts";
 import ManageOrders from "../Dashboard/Admin/ManageOrders";
 import Analytics from "../Dashboard/Admin/Analytics";
 import AdminUpdateProduct from "../Dashboard/Admin/AdminUpdateProduct";
-
-
+import OrderDetails from "../Dashboard/Admin/OrderDetails";
 
 
 export const router = createBrowserRouter([
@@ -49,7 +48,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "/product/:id",
-        element: <ProductDetails></ProductDetails>
+        element: <ProductDetails></ProductDetails>,
       },
       {
         path: "/login",
@@ -69,7 +68,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "/thank-you",
-        element: <ThankYouPage/>,
+        element: <ThankYouPage />,
       },
     ],
   },
@@ -92,20 +91,22 @@ export const router = createBrowserRouter([
       { path: "manage-products", element: <ManageProducts /> },
       { path: "manage-orders", element: <ManageOrders /> },
       { path: "analytics", element: <Analytics /> },
+       { path: "/dashboard/order/:orderId", element: <OrderDetails /> },
+
       {
-  path: "admin/update-product/:productId", // <-- Add dynamic segment for productId
-  element: <AdminUpdateProduct />,
-},
-
-
+        path: "admin/update-product/:productId", // <-- Add dynamic segment for productId
+        element: <AdminUpdateProduct />,
+      },
 
       // Seller Routes
-      { path: "seller-home",
-         element: <PrivateRoute>
-          
+      {
+        path: "seller-home",
+        element: (
+          <PrivateRoute>
             <SellerHome />
-          
-         </PrivateRoute> },
+          </PrivateRoute>
+        ),
+      },
       { path: "my-products", element: <MyProducts /> },
       { path: "add-product", element: <AddProducts /> },
       { path: "seller-orders", element: <SellerOrders /> },
