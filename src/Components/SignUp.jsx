@@ -46,7 +46,6 @@ const Signup = () => {
       });
   }, [from, navigate, setUser]);
 
-  // Google Sign In
   const handleGoogleLogIn = () => {
     googleSignIn()
       .then((result) => {
@@ -72,7 +71,6 @@ const Signup = () => {
       });
   };
 
-  // Email/Password Signup
   const handleSignup = async (e) => {
     e.preventDefault();
     setSuccess(false);
@@ -82,9 +80,8 @@ const Signup = () => {
     const name = e.target.name.value;
     const email = e.target.email.value;
     const password = e.target.password.value;
-    const terms = e.target.elements.terms.checked; // Fixed here
+    const terms = e.target.elements.terms.checked;
 
-    // Password validation
     if (password.length < 6) {
       setErrorMessage("Password must be at least 6 characters");
       setLoading(false);
@@ -107,7 +104,6 @@ const Signup = () => {
     }
 
     let imageUrl = "https://i.ibb.co/2d9dK0F/default-profile.png";
-    // If user uploaded an image, upload to image host
     if (imageFile) {
       try {
         imageUrl = await imageUpload(imageFile);
@@ -124,14 +120,13 @@ const Signup = () => {
           email,
           image: imageUrl,
         };
-        // Save user data in DB
         saveUserInDb(userData);
 
         toast.success("Registration Successful");
         updateUserProfile({ displayName: name, photoURL: imageUrl })
           .then(() => {
             setUser({ ...user, displayName: name, photoURL: imageUrl });
-            setSuccess(true); // Set success state to true when registration is successful
+            setSuccess(true);
             setLoading(false);
             navigate(from, { replace: true });
           })
@@ -160,97 +155,112 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-tr from-[#f0f4ff] to-[#ffe6f0] py-12 px-4 sm:px-6 lg:px-32">
-      <div className="max-w-6xl mx-auto bg-white shadow-xl rounded-xl overflow-hidden flex flex-col lg:flex-row">
-        <div className="w-full lg:w-1/2 p-8 sm:p-10">
-          <h2 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">Create Your Account</h2>
-          <form onSubmit={handleSignup} className="space-y-5">
-            <input
-              name="name"
-              type="text"
-              required
-              placeholder="Full Name"
-              className="input input-bordered w-full"
-            />
-            <input
-              name="photo"
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="file-input file-input-bordered w-full"
-            />
-            {imagePreview && (
-              <img
-                src={imagePreview}
-                alt="Preview"
-                className="w-20 h-20 object-cover rounded-full mx-auto border"
-              />
-            )}
-            <input
-              name="email"
-              type="email"
-              required
-              placeholder="Email"
-              className="input input-bordered w-full"
-            />
-            <div className="relative">
+    <div className="min-h-screen w-full bg-[#fafafa] relative text-gray-900 rounded-2xl mb-8">
+      {/* Diagonal Grid with Electric Orange */}
+      <div
+        className="absolute inset-0 z-0 pointer-events-none"
+        style={{
+          backgroundImage: `
+            repeating-linear-gradient(45deg, rgba(255, 0, 100, 0.1) 0, rgba(255, 0, 100, 0.1) 1px, transparent 1px, transparent 20px),
+            repeating-linear-gradient(-45deg, rgba(255, 0, 100, 0.1) 0, rgba(255, 0, 100, 0.1) 1px, transparent 1px, transparent 20px)
+          `,
+          backgroundSize: "40px 40px",
+        }}
+      />
+      <div className="flex items-center justify-center min-h-screen py-12 px-4 sm:px-6 lg:px-32 relative z-10">
+        <div className="max-w-6xl mx-auto bg-white shadow-xl rounded-xl overflow-hidden flex flex-col lg:flex-row">
+          <div className="w-full lg:w-1/2 p-8 sm:p-10">
+            <h2 className="text-3xl font-extrabold text-gray-900 mb-6 text-center">Create Your Account</h2>
+            <form onSubmit={handleSignup} className="space-y-6">
               <input
-                name="password"
-                type={showPassword ? "text" : "password"}
+                name="name"
+                type="text"
                 required
-                placeholder="Password"
-                className="input input-bordered w-full"
+                placeholder="Full Name"
+                className="input input-bordered w-full text-gray-900 placeholder-gray-500"
               />
+              <input
+                name="photo"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="file-input file-input-bordered w-full text-gray-900"
+              />
+              {imagePreview && (
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-24 h-24 object-cover rounded-full mx-auto border-2 border-gray-300"
+                />
+              )}
+              <input
+                name="email"
+                type="email"
+                required
+                placeholder="Email"
+                className="input input-bordered w-full text-gray-900 placeholder-gray-500"
+              />
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="Password"
+                  className="input input-bordered w-full text-gray-900 placeholder-gray-500 pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-3 text-gray-600 hover:text-gray-900"
+                >
+                  {showPassword ? <FaRegEye /> : <FaEyeSlash />}
+                </button>
+              </div>
+
+              <label className="flex items-center mt-2 text-gray-700">
+                <input
+                  type="checkbox"
+                  name="terms"
+                  required
+                  className="mr-2 accent-teal-600"
+                />
+                I agree to the terms and conditions
+              </label>
+
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-3 text-gray-500"
+                type="submit"
+                className="btn w-full bg-gradient-to-r from-[#ff8a05] via-[#ff5478] to-[#ff00c6] text-white font-bold hover:from-[#ff6f00] hover:via-[#ff4060] hover:to-[#e600b2] transition-all duration-300"
+                disabled={loading}
               >
-                {showPassword ? <FaRegEye /> : <FaEyeSlash />}
+                {loading ? "Registering..." : "Register"}
               </button>
-            </div>
-
-            <label className="flex items-center mt-2">
-              <input
-                type="checkbox"
-                name="terms"
-                required
-                className="mr-2"
-              />
-              I agree to the terms and conditions
-            </label>
-
-            <button
-              type="submit"
-              className="btn w-full bg-gradient-to-r from-[#ff8a05] via-[#ff5478] to-[#ff00c6] text-white font-bold"
-              disabled={loading}
-            >
-              {loading ? "Registering..." : "Register"}
-            </button>
-            <button
-              onClick={handleGoogleLogIn}
-              type="button"
-              className="btn w-full bg-white border mt-2 flex items-center justify-center gap-2"
-            >
-              <img
-                src="https://img.icons8.com/color/48/000000/google-logo.png"
-                alt="Google"
-                className="w-5 h-5"
-              /> Sign up with Google
-            </button>
-            <p className="text-sm mt-2 text-center">
-              Already have an account? <Link to="/login" className="text-primary underline">Log in</Link>
+              <button
+                onClick={handleGoogleLogIn}
+                type="button"
+                className="btn w-full bg-white border-gray-300 text-gray-900 hover:bg-gray-100 flex items-center justify-center gap-3 transition-colors duration-300"
+                disabled={loading}
+              >
+                <img
+                  src="https://img.icons8.com/color/48/000000/google-logo.png"
+                  alt="Google"
+                  className="w-6 h-6"
+                />
+                Sign up with Google
+              </button>
+              <p className="text-sm mt-2 text-center text-gray-700">
+                Already have an account? <Link to="/login" className="text-teal-600 hover:underline">Log in</Link>
+              </p>
+              {errorMessage && <p className="text-red-600 text-sm text-center">{errorMessage}</p>}
+            </form>
+          </div>
+          <div className="w-full lg:w-1/2 bg-gradient-to-br from-[#ffe3ec] to-[#e3f2fd] p-10 flex flex-col justify-center items-center text-center">
+            <h3 className="text-3xl font-bold text-gray-800 mb-4">
+              Join Jonoprio Today
+            </h3>
+            <p className="text-gray-700">
+              Explore the marketplace, sell your products, and enjoy exclusive deals on your favorite items.
             </p>
-            {errorMessage && <p className="text-red-500 text-sm text-center">{errorMessage}</p>}
-          </form>
-        </div>
-        <div className="w-full lg:w-1/2 bg-gradient-to-br from-[#ffe3ec] to-[#e3f2fd] p-10 flex flex-col justify-center items-center text-center">
-          <h3 className="text-3xl font-bold text-gray-700 mb-4">
-            Join Jonoprio Today
-          </h3>
-          <p className="text-gray-600">
-            Explore the marketplace, sell your products, and enjoy exclusive deals on your favorite items.
-          </p>
+          </div>
         </div>
       </div>
     </div>
