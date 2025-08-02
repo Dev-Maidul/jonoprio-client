@@ -42,11 +42,11 @@ const CheckoutPage = () => {
 
   useEffect(() => {
     if (!cartItems || cartItems.length === 0) {
-      toast.error("কোনো পণ্য চেকআউটের জন্য পাওয়া যায়নি। অনুগ্রহ করে প্রথমে একটি পণ্য নির্বাচন করুন।", {
-        duration: 4000,
-        position: 'top-center'
-      });
-      navigate('/cart', { state: { checkoutError: true } });
+      // toast.error("কোনো পণ্য চেকআউটের জন্য পাওয়া যায়নি। অনুগ্রহ করে প্রথমে একটি পণ্য নির্বাচন করুন।", {
+      //   duration: 4000,
+      //   position: 'top-center'
+      // });
+      navigate('/cart', { state: { checkoutError: false } });
     }
   }, [cartItems, navigate]);
 
@@ -226,7 +226,7 @@ const CheckoutPage = () => {
                 </div>
               )}
               <div className="form-control">
-                <label className="label cursor-pointer justify-start">
+                {/* <label className="label cursor-pointer justify-start">
                   <input 
                     type="checkbox" 
                     {...register('createAccount')} 
@@ -234,7 +234,7 @@ const CheckoutPage = () => {
                     disabled={!!user}
                   />
                   <span className="label-text">একটি অ্যাকাউন্ট তৈরি করুন?</span>
-                </label>
+                </label> */}
               </div>
             </div>
 
@@ -245,7 +245,7 @@ const CheckoutPage = () => {
                 onClick={() => setValue('addOrderNotes', !showOrderNotes)}
                 className="text-blue-600 hover:underline flex items-center font-medium"
               >
-                <FaPlus className={`mr-2 transition-transform ${showOrderNotes ? 'rotate-45' : 'rotate-0'}`} /> অর্ডারের জন্য নোট যোগ করুন
+                <FaPlus className={`mr-2 transition-transform cursor-pointer ${showOrderNotes ? 'rotate-45' : 'rotate-0'}`} /> অর্ডারের জন্য নোট যোগ করুন
               </button>
               {showOrderNotes && (
                 <motion.div
@@ -254,7 +254,7 @@ const CheckoutPage = () => {
                   transition={{ duration: 0.3 }}
                   className="mt-4 overflow-hidden"
                 >
-                  <label htmlFor="orderNotes" className="block text-gray-700 font-semibold mb-2">অর্ডার নোটস (ঐচ্ছিক)</label>
+                  <label htmlFor="orderNotes" className="block text-gray-700 font-semibold mb-2 cursor-pointer">অর্ডার নোটস (ঐচ্ছিক)</label>
                   <textarea
                     id="orderNotes"
                     rows="3"
@@ -276,8 +276,8 @@ const CheckoutPage = () => {
                   value="ঢাকার ভেতরে" 
                   className="radio radio-primary mr-2" 
                 />
-                <span className="label-text flex-1">ঢাকার ভেতরে</span>
-                <span className="font-semibold text-gray-700">৳{SHIPPING_COSTS['ঢাকার ভেতরে']}</span>
+                <span className="label-text flex-1 text-black">ঢাকার ভেতরে</span>
+                <span className="font-semibold text-black">৳{SHIPPING_COSTS['ঢাকার ভেতরে']}</span>
               </label>
               <label className="flex items-center cursor-pointer">
                 <input 
@@ -286,7 +286,7 @@ const CheckoutPage = () => {
                   value="ঢাকার বাইরে" 
                   className="radio radio-primary mr-2" 
                 />
-                <span className="label-text flex-1">ঢাকার বাইরে</span>
+                <span className="label-text flex-1 text-black">ঢাকার বাইরে</span>
                 <span className="font-semibold text-gray-700">৳{SHIPPING_COSTS['ঢাকার বাইরে']}</span>
               </label>
               {errors.shippingMethod && <p className="text-red-500 text-sm mt-1">{errors.shippingMethod.message}</p>}
@@ -344,7 +344,7 @@ const CheckoutPage = () => {
                   value="cashOnDelivery" 
                   className="radio radio-primary mr-2" 
                 />
-                <span className="label-text flex-1">ক্যাশ অন ডেলিভারি</span>
+                <span className="label-text flex-1 text-black">ক্যাশ অন ডেলিভারি</span>
                 <span className="text-gray-500 text-sm">পণ্য হাতে পেয়ে পেমেন্ট করুন।</span>
               </label>
               <label className="flex items-center cursor-pointer">
@@ -354,7 +354,7 @@ const CheckoutPage = () => {
                   value="mobileBanking" 
                   className="radio radio-primary mr-2" 
                 />
-                <span className="label-text flex-1">মোবাইল ব্যাংকিং / ব্যাংক পেমেন্ট</span>
+                <span className="label-text flex-1 text-black">মোবাইল ব্যাংকিং / ব্যাংক পেমেন্ট</span>
                 <span className="text-gray-500 text-sm">বিকাশ, নগদ, রকেট অথবা ব্যাংক ট্রান্সফার।</span>
               </label>
               {errors.paymentMethod && <p className="text-red-500 text-sm mt-1">{errors.paymentMethod.message}</p>}

@@ -40,6 +40,7 @@ import ReturnAndRefund from "../Components/ReturnAndRefund";
 import PreorderTermCondition from "../Components/PreorderTermCondition";
 import FaqPage from "../Components/FaqPage";
 import AboutUs from "../Components/AboutUs";
+import CustomerRoute from "./CustomerRoute";
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -178,25 +179,33 @@ export const router = createBrowserRouter([
       },
       { 
         path: "my-products", 
-        element: <MyProducts /> 
+        element: <SellerRoute>
+          <MyProducts /> 
+        </SellerRoute>
       },
       { 
         path: "add-product", 
-        element: <AddProducts /> 
+        element: <SellerRoute>
+          <AddProducts />
+        </SellerRoute> 
       },
       { 
         path: "seller-orders", 
-        element: <SellerOrders /> 
+        element: <SellerRoute>
+          <SellerOrders />
+        </SellerRoute> 
       },
       { 
         path: "edit-product/:id", 
-        element: <EditProduct /> 
+        element: <SellerRoute><EditProduct /></SellerRoute> 
       },
       
       // Customer Routes
       { 
         path: "customer-home", 
-        element: <CustomerHome /> 
+        element: <CustomerRoute>
+          <CustomerHome /> 
+        </CustomerRoute>
       },
       { 
         path: "my-orders", 

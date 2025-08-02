@@ -4,13 +4,13 @@ import useRole from '../Hooks/useRole'
 import Spinner from '../Shared/Spinner'
 
 
-const AgentRoute = ({ children }) => {
+const CustomerRoute = ({ children }) => {
   const [role, isRoleLoading] = useRole()
 
-  console.log('I was here, in Agent')
+  console.log('I was here, in customer')
   if (isRoleLoading) return Spinner
-  if (role === 'agent') return children
+  if (role === 'customer') return children
   return <Navigate to='/' replace='true' />
 }
 
-export default AgentRoute
+export default CustomerRoute

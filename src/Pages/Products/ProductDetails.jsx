@@ -416,7 +416,7 @@ const ProductDetails = () => {
 
           {/* Quantity Selector */}
           <div className="flex items-center space-x-4 mb-6">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 text-black">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

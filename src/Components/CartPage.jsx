@@ -251,7 +251,8 @@ const CartPage = () => {
                   
                   <div className="flex justify-between text-gray-600">
                     <span>Shipping</span>
-                    <span className="font-medium text-green-600">Free</span>
+                    <span className="font-medium text-green-600">ঢাকার ভেতরে: 90,
+    ঢাকার বাইরে: 130</span>
                   </div>
                   
                   <div className="flex justify-between pt-4 border-t border-gray-200">
